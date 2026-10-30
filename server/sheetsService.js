@@ -66,6 +66,7 @@ export class SheetsService {
     this.isSyncing = false;
     this.sseClients = new Set();
     this.idAllocationLock = false;
+    this.hasInitialSync = false;
     this.pollingTimer = null;
     this.liveCredentialsAvailable = false;
     this.sheetsClient = null;
@@ -471,6 +472,7 @@ export class SheetsService {
 
       const changedRecords = [];
       const startIndex = headerRowIndex !== -1 ? headerRowIndex + 1 : Math.min(CONFIG.DATA_START_ROW - 1, rows.length);
+      const activeSheetIndentNos = new Set();
 
       // Read business data from row after header
       for (let r = startIndex; r < rows.length; r++) {
@@ -480,6 +482,8 @@ export class SheetsService {
         if (!rsIndentNo) continue; // Skip empty row where formula might exist without business record
         // Skip header repetitions if any
         if (rsIndentNo.toLowerCase().includes('indent') || rsIndentNo.toLowerCase() === 'need') continue;
+
+        activeSheetIndentNos.add(rsIndentNo);
 
         // GViz omits blank leading rows, so its array index is not the real
         // spreadsheet row number. Anchor records to the configured header row
@@ -574,6 +578,15 @@ export class SheetsService {
         }
       }
 
+      // Prune records that have been deleted or cleared from the Google Sheet
+      for (const existingId of Array.from(this.records.keys())) {
+        if (!activeSheetIndentNos.has(existingId)) {
+          this.records.delete(existingId);
+          changedRecords.push({ rsIndentNo: existingId, _deleted: true });
+        }
+      }
+
+      this.hasInitialSync = true;
       this.lastSyncTime = new Date().toISOString();
       this.syncStatus.connected = true;
       this.syncStatus.lastSuccess = this.lastSyncTime;

@@ -28,6 +28,7 @@ export function Shell({
   onOpenNewRequisition,
   onExportCsv,
   counters,
+  onSyncTriggered,
   children,
 }) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -698,7 +699,7 @@ export function Shell({
 
             {/* Top Action Center: Export CSV + New Requisition Button */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <LiveSyncIndicator />
+              <LiveSyncIndicator onSyncTriggered={onSyncTriggered} />
 
               {onExportCsv && (
                 <button

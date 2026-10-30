@@ -54,9 +54,10 @@ function MainApp() {
     enabled: !!user,
   });
 
-  // Handle SSE live delta updates by invalidating TanStack Query cache
+  // Handle manual sync or SSE live delta updates by refetching requisitions
   const handleLiveSyncEvent = () => {
     qc.invalidateQueries({ queryKey: ['requisitions'] });
+    refetch();
   };
 
   const handleLogout = () => {
@@ -105,6 +106,7 @@ function MainApp() {
           : { view: 'stage', stageType: currentTab === 'history' ? 'ALL' : currentTab.toUpperCase() }
       )}
       counters={counters}
+      onSyncTriggered={handleLiveSyncEvent}
     >
       {/* Tab Content */}
       {currentTab === 'dashboard' && (

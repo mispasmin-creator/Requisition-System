@@ -133,8 +133,8 @@ function computeRecordStatus(record) {
  * Server-side authorized query, filtering, pagination, and unified stage counters
  */
 app.get('/api/requisitions', authMiddleware, async (req, res) => {
-  // If in-memory store is empty on startup, trigger immediate sync so data is available instantly
-  if (sheetsService.records.size === 0) {
+  // If in-memory store has not yet completed initial sync, trigger sync immediately
+  if (!sheetsService.hasInitialSync) {
     try {
       await sheetsService.sync();
     } catch (err) {
