@@ -80,8 +80,11 @@ class ApiClient {
     try {
       data = responseText ? JSON.parse(responseText) : {};
     } catch {
-      if (res.status === 404 || res.status === 502 || res.status === 503) {
-        throw new Error('Backend server is currently reconnecting. Please wait a moment and try again.');
+      if (res.status === 404) {
+        throw new Error('Backend API endpoint not found (404). Ensure Vercel or backend server is running.');
+      }
+      if (res.status === 502 || res.status === 503) {
+        throw new Error('Backend server is temporarily unavailable (502/503). Please wait a moment and try again.');
       }
       throw new Error(`Server returned an unexpected response (HTTP ${res.status}). Please retry.`);
     }

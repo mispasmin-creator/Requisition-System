@@ -16,6 +16,9 @@ export const CONFIG = {
   DRIVE_FOLDER_ID: process.env.DRIVE_FOLDER_ID || '1zTCzuN4t70Fydjc4LjD5lddZYaGO1iHR',
   DRIVE_FOLDER_URL: process.env.DRIVE_FOLDER_URL || 'https://drive.google.com/drive/folders/1zTCzuN4t70Fydjc4LjD5lddZYaGO1iHR?lfhs=2',
 
+  // Google Apps Script Web App Endpoint for direct sheet writes
+  APPS_SCRIPT_URL: process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbwLT8Ha6mrv9sP2cX2DFfu1R9g1sypq-pMU_hLNB_uE5ayunDOGmoAa5naVdJIDlKmT/exec',
+
   // Column definitions for 'Login page' tab
   LOGIN_COLUMNS: {
     A: 'Full Name',

@@ -342,7 +342,7 @@ app.get('/api/config', authMiddleware, (req, res) => {
     schemaReport: schemaValidator.getReport(),
     syncStatus: sheetsService.syncStatus,
     stageOwners: CONFIG.STAGE_OWNERS,
-    appsScriptUrl: process.env.APPS_SCRIPT_URL || '',
+    appsScriptUrl: CONFIG.APPS_SCRIPT_URL || process.env.APPS_SCRIPT_URL || '',
     driveFolderId: CONFIG.DRIVE_FOLDER_ID,
     driveFolderUrl: CONFIG.DRIVE_FOLDER_URL,
   });
@@ -454,11 +454,20 @@ app.post('/api/admin/users', authMiddleware, async (req, res) => {
 
 app.get('/api/admin/apps-script-code', authMiddleware, (req, res) => {
   try {
-    const codePath = path.resolve('server/appsScriptCode.js');
-    const code = fs.readFileSync(codePath, 'utf8');
+    let code = '';
+    const possiblePaths = [
+      path.resolve(process.cwd(), 'server/appsScriptCode.js'),
+      path.resolve('server/appsScriptCode.js'),
+    ];
+    for (const p of possiblePaths) {
+      if (fs.existsSync(p)) {
+        code = fs.readFileSync(p, 'utf8');
+        break;
+      }
+    }
     res.json({
       success: true,
-      appsScriptUrl: process.env.APPS_SCRIPT_URL || '',
+      appsScriptUrl: CONFIG.APPS_SCRIPT_URL || process.env.APPS_SCRIPT_URL || '',
       code: code,
     });
   } catch (err) {
@@ -495,14 +504,18 @@ app.post('/api/sync/trigger', authMiddleware, async (req, res) => {
 
 // Start Express server and initial Sheets sync
 const PORT = CONFIG.PORT;
-app.listen(PORT, async () => {
-  console.log(`=======================================================`);
-  console.log(`Requisition System Backend API running on port ${PORT}`);
-  console.log(`Target Spreadsheet ID: ${CONFIG.SPREADSHEET_ID}`);
-  console.log(`Data Tab: ${CONFIG.DATA_TAB} | Master Tab: ${CONFIG.MASTER_TAB}`);
-  console.log(`Formula Protected Columns: ${CONFIG.PROTECTED_FORMULA_COLUMNS.join(', ')}`);
-  console.log(`=======================================================`);
+if (!process.env.VERCEL) {
+  app.listen(PORT, async () => {
+    console.log(`=======================================================`);
+    console.log(`Requisition System Backend API running on port ${PORT}`);
+    console.log(`Target Spreadsheet ID: ${CONFIG.SPREADSHEET_ID}`);
+    console.log(`Data Tab: ${CONFIG.DATA_TAB} | Master Tab: ${CONFIG.MASTER_TAB}`);
+    console.log(`Formula Protected Columns: ${CONFIG.PROTECTED_FORMULA_COLUMNS.join(', ')}`);
+    console.log(`=======================================================`);
 
-  // Start polling service
-  sheetsService.startPolling();
-});
+    // Start polling service
+    sheetsService.startPolling();
+  });
+}
+
+export default app;

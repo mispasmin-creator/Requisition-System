@@ -897,7 +897,7 @@ export class SheetsService {
       return;
     }
 
-    const appsScriptUrl = process.env.APPS_SCRIPT_URL;
+    const appsScriptUrl = CONFIG.APPS_SCRIPT_URL || process.env.APPS_SCRIPT_URL;
     const targetTab = writePayload.tabName || CONFIG.DATA_TAB;
 
     if (appsScriptUrl && appsScriptUrl.trim()) {
@@ -979,7 +979,7 @@ export class SheetsService {
    */
   async uploadToGoogleDrive({ fileName, fileData, mimeType, folderId }) {
     const targetFolderId = folderId || CONFIG.DRIVE_FOLDER_ID || '1zTCzuN4t70Fydjc4LjD5lddZYaGO1iHR';
-    const appsScriptUrl = process.env.APPS_SCRIPT_URL;
+    const appsScriptUrl = CONFIG.APPS_SCRIPT_URL || process.env.APPS_SCRIPT_URL;
 
     // Clean base64 if it has data URL prefix like "data:image/png;base64,"
     let cleanBase64 = fileData;
