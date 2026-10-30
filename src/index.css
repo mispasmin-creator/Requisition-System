@@ -108,3 +108,44 @@ button, input, select, textarea {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Responsive display utility helpers */
+.desktop-only {
+  display: block;
+}
+.mobile-only {
+  display: none !important;
+}
+.mobile-flex {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+  .mobile-only {
+    display: block !important;
+  }
+  .mobile-flex {
+    display: flex !important;
+  }
+
+  /* Safe tap areas & touch responsiveness */
+  button, a, input, select {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-attachment: scroll;
+  }
+}
+
+/* Custom horizontal pill scrollbar hiding */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

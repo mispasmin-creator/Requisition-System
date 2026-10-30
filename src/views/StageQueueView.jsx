@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Filter, CheckCircle2, Clock, AlertTriangle, ArrowRight, Paperclip, ExternalLink, Download } from 'lucide-react';
 import { StageBadge } from '../components/StageBadge';
+import { MobileRequisitionCard } from '../components/MobileRequisitionCard';
 import { exportRequisitionsCsv } from '../utils/csvExport';
 
 export function StageQueueView({
@@ -219,8 +220,9 @@ export function StageQueueView({
         </span>
       </div>
 
-      {/* Table Box - Completely visible, inner data scrollable, header frozen */}
+      {/* Desktop Table View - Hidden on mobile screens */}
       <div
+        className="desktop-only"
         style={{
           flex: 1,
           minHeight: 0,
@@ -488,6 +490,102 @@ export function StageQueueView({
                 Next
               </button>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile Card List View - Visible ONLY on mobile screens (inspired by reference image) */}
+      <div
+        className="mobile-only"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '14px',
+          paddingBottom: '90px', // Extra padding for mobile bottom navigation dock
+        }}
+      >
+        {filtered.length === 0 ? (
+          <div
+            style={{
+              padding: '40px 20px',
+              textAlign: 'center',
+              backgroundColor: '#ffffff',
+              borderRadius: '20px',
+              border: '1px solid #e5ede3',
+              color: 'var(--text-muted)',
+              boxShadow: '0 2px 10px rgba(18, 36, 22, 0.04)',
+            }}
+          >
+            <p style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: '#1f3422' }}>No requisitions in this queue</p>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#687d6b' }}>All tasks are up to date.</p>
+          </div>
+        ) : (
+          paginated.map((r, idx) => (
+            <MobileRequisitionCard
+              key={r.rsIndentNo || idx}
+              requisition={r}
+              stageType={stageType}
+              filterMode={filterMode}
+              onOpenStageAction={onOpenStageAction}
+              user={user}
+            />
+          ))
+        )}
+
+        {/* Mobile Pagination */}
+        {totalPages > 1 && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 16px',
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              border: '1px solid #e5ede3',
+              boxShadow: '0 2px 8px rgba(18, 36, 22, 0.04)',
+              marginTop: '4px',
+            }}
+          >
+            <button
+              type="button"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '9999px',
+                border: '1px solid var(--border-light)',
+                backgroundColor: currentPage === 1 ? '#f5f5f5' : '#ffffff',
+                color: currentPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+              }}
+            >
+              Previous
+            </button>
+
+            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+              Page {currentPage} of {totalPages}
+            </span>
+
+            <button
+              type="button"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '9999px',
+                border: '1px solid var(--border-light)',
+                backgroundColor: currentPage === totalPages ? '#f5f5f5' : '#ffffff',
+                color: currentPage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+              }}
+            >
+              Next
+            </button>
           </div>
         )}
       </div>

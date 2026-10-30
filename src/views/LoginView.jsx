@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, User, ArrowRight, Shield, CheckCircle2 } from 'lucide-react';
+import { useIsMobile } from '../utils/useIsMobile';
 import { api } from '../api/client';
 
 export function LoginView({ onLoginSuccess }) {
+  const isMobile = useIsMobile(768);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -31,7 +33,7 @@ export function LoginView({ onLoginSuccess }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '24px',
+        padding: isMobile ? '16px' : '24px',
         position: 'relative',
       }}
     >
@@ -43,10 +45,10 @@ export function LoginView({ onLoginSuccess }) {
           width: '100%',
           maxWidth: '460px',
           backgroundColor: '#ffffff',
-          borderRadius: '28px',
+          borderRadius: isMobile ? '22px' : '28px',
           boxShadow: 'var(--shadow-floating)',
           border: '1px solid var(--border-light)',
-          padding: '36px',
+          padding: isMobile ? '26px 20px' : '36px',
           display: 'flex',
           flexDirection: 'column',
           gap: '24px',

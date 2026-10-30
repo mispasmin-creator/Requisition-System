@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { useIsMobile } from '../utils/useIsMobile';
 
 export function Modal({ isOpen, onClose, title, children, maxWidth = '560px' }) {
+  const isMobile = useIsMobile(768);
   const modalRef = useRef(null);
   const previousActiveElement = useRef(null);
 
@@ -63,9 +65,9 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = '560px' }) 
             inset: 0,
             zIndex: 9999,
             display: 'flex',
-            alignItems: 'center',
+            alignItems: isMobile ? 'flex-end' : 'center',
             justifyContent: 'center',
-            padding: '20px',
+            padding: isMobile ? '0' : '20px',
           }}
         >
           {/* Overlay */}
@@ -83,15 +85,15 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = '560px' }) 
             }}
           />
 
-          {/* Soft bubble-style modal */}
+          {/* Soft bubble / bottom-sheet style modal */}
           <motion.div
             ref={modalRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="modal-title"
-            initial={{ opacity: 0, scale: 0.92, y: 12 }}
+            initial={{ opacity: 0, scale: isMobile ? 1 : 0.92, y: isMobile ? 40 : 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 8 }}
+            exit={{ opacity: 0, scale: isMobile ? 1 : 0.94, y: isMobile ? 40 : 8 }}
             transition={{
               type: 'spring',
               damping: 26,
@@ -101,16 +103,16 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = '560px' }) 
             style={{
               position: 'relative',
               width: '100%',
-              maxWidth,
+              maxWidth: isMobile ? '100%' : maxWidth,
               backgroundColor: '#ffffff',
-              borderRadius: '24px',
+              borderRadius: isMobile ? '24px 24px 0 0' : '24px',
               boxShadow: 'var(--shadow-bubble)',
               border: '1px solid var(--border-light)',
               overflow: 'hidden',
               zIndex: 10000,
               display: 'flex',
               flexDirection: 'column',
-              maxHeight: '90vh',
+              maxHeight: isMobile ? '92vh' : '90vh',
             }}
           >
             {/* Header */}
@@ -119,7 +121,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = '560px' }) 
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '20px 24px',
+                padding: isMobile ? '16px 20px' : '20px 24px',
                 borderBottom: '1px solid var(--border-light)',
                 backgroundColor: 'var(--surface-subtle)',
               }}

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { CheckSquare, Send, DollarSign, ShieldCheck, ArrowRight, FileText, Download } from 'lucide-react';
 import { StatCard } from '../components/StatCard';
 import { StageBadge } from '../components/StageBadge';
+import { MobileRequisitionCard } from '../components/MobileRequisitionCard';
 import { exportRequisitionsCsv } from '../utils/csvExport';
 
 export function DashboardView({
@@ -252,7 +253,8 @@ export function DashboardView({
           </div>
         </div>
 
-        <div style={{ maxHeight: '360px', overflowY: 'auto', overflowX: 'auto', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+        {/* Desktop Table View */}
+        <div className="desktop-only" style={{ maxHeight: '360px', overflowY: 'auto', overflowX: 'auto', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
           <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left', fontSize: '0.88rem' }}>
             <thead>
               <tr style={{ position: 'sticky', top: 0, zIndex: 5 }}>
@@ -310,6 +312,25 @@ export function DashboardView({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Recent Requisitions Card List */}
+        <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {recentRequisitions.length === 0 ? (
+            <div style={{ padding: '24px 14px', textAlign: 'center', color: 'var(--text-muted)', backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid var(--border-light)' }}>
+              No requisitions recorded yet.
+            </div>
+          ) : (
+            recentRequisitions.map((r) => (
+              <MobileRequisitionCard
+                key={r.rsIndentNo}
+                requisition={r}
+                stageType="ALL"
+                onOpenStageAction={onOpenStageAction}
+                user={user}
+              />
+            ))
+          )}
         </div>
       </div>
     </div>

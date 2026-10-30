@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText,
   LayoutDashboard,
@@ -11,6 +11,7 @@ import {
   Archive,
   Settings,
   PlusCircle,
+  Plus,
   LogOut,
   User,
   Shield,
@@ -18,8 +19,12 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Download,
+  Menu,
+  X,
+  ChevronRight,
 } from 'lucide-react';
 import { LiveSyncIndicator } from './LiveSyncIndicator';
+import { useIsMobile } from '../utils/useIsMobile';
 
 export function Shell({
   user,
@@ -32,6 +37,8 @@ export function Shell({
   onSyncTriggered,
   children,
 }) {
+  const isMobile = useIsMobile(768);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
@@ -135,12 +142,27 @@ export function Shell({
     return item.roles.includes('*') || item.roles.includes(user?.role);
   });
 
+  const totalPendingStages =
+    (counters?.approval?.pending || 0) +
+    (counters?.posting?.pending || 0) +
+    (counters?.payment?.pending || 0) +
+    (counters?.audit?.pending || 0) +
+    (counters?.tally?.pending || 0);
+
+  const stageTabs = [
+    { id: 'approval', label: 'Approval', badge: counters?.approval?.pending || 0 },
+    { id: 'posting', label: 'Posting', badge: counters?.posting?.pending || 0 },
+    { id: 'payment', label: 'Payment', badge: counters?.payment?.pending || 0 },
+    { id: 'audit', label: 'Audit', badge: counters?.audit?.pending || 0 },
+    { id: 'tally', label: 'Tally', badge: counters?.tally?.pending || 0 },
+  ];
+
   return (
     <div
       style={{
         height: '100vh',
         maxHeight: '100vh',
-        padding: '12px 18px',
+        padding: isMobile ? 0 : '12px 18px',
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
@@ -151,80 +173,83 @@ export function Shell({
       }}
     >
       {/* Decorative ambient background rings matching reference image */}
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          pointerEvents: 'none',
-          overflow: 'hidden',
-          zIndex: 0,
-        }}
-      >
-        {/* Ring 1 */}
+      {!isMobile && (
         <div
           style={{
-            position: 'absolute',
-            top: '-15%',
-            right: '-10%',
-            width: '800px',
-            height: '800px',
-            borderRadius: '50%',
-            border: '1px solid rgba(136, 163, 131, 0.12)',
-            transform: `translate3d(${mousePos.x * 0.8}px, ${mousePos.y * 0.8}px, 0)`,
-            transition: 'transform 0.1s ease-out',
+            position: 'fixed',
+            inset: 0,
+            pointerEvents: 'none',
+            overflow: 'hidden',
+            zIndex: 0,
           }}
-        />
-        {/* Ring 2 */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '-5%',
-            right: '0%',
-            width: '650px',
-            height: '650px',
-            borderRadius: '50%',
-            border: '1.5px solid rgba(178, 197, 168, 0.15)',
-            transform: `translate3d(${mousePos.x * 0.5}px, ${mousePos.y * 0.5}px, 0)`,
-            transition: 'transform 0.1s ease-out',
-          }}
-        />
-        {/* Ambient Sage Glow */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '10%',
-            left: '-10%',
-            width: '600px',
-            height: '600px',
-            background: 'radial-gradient(circle, rgba(136, 163, 131, 0.1) 0%, transparent 70%)',
-            transform: `translate3d(${-mousePos.x * 0.6}px, ${-mousePos.y * 0.6}px, 0)`,
-            transition: 'transform 0.1s ease-out',
-          }}
-        />
-      </div>
+        >
+          {/* Ring 1 */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '-15%',
+              right: '-10%',
+              width: '800px',
+              height: '800px',
+              borderRadius: '50%',
+              border: '1px solid rgba(136, 163, 131, 0.12)',
+              transform: `translate3d(${mousePos.x * 0.8}px, ${mousePos.y * 0.8}px, 0)`,
+              transition: 'transform 0.1s ease-out',
+            }}
+          />
+          {/* Ring 2 */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '-5%',
+              right: '0%',
+              width: '650px',
+              height: '650px',
+              borderRadius: '50%',
+              border: '1.5px solid rgba(178, 197, 168, 0.15)',
+              transform: `translate3d(${mousePos.x * 0.5}px, ${mousePos.y * 0.5}px, 0)`,
+              transition: 'transform 0.1s ease-out',
+            }}
+          />
+          {/* Ambient Sage Glow */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '10%',
+              left: '-10%',
+              width: '600px',
+              height: '600px',
+              background: 'radial-gradient(circle, rgba(136, 163, 131, 0.1) 0%, transparent 70%)',
+              transform: `translate3d(${-mousePos.x * 0.6}px, ${-mousePos.y * 0.6}px, 0)`,
+              transition: 'transform 0.1s ease-out',
+            }}
+          />
+        </div>
+      )}
 
-      {/* Main Floating Application Surface - Fixed viewport height */}
+      {/* Main Floating Application Surface - Full screen on mobile */}
       <motion.main
-        initial={{ opacity: 0, scale: 0.98, y: 16 }}
+        initial={{ opacity: 0, scale: isMobile ? 1 : 0.98, y: isMobile ? 0 : 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
         style={{
           width: '100%',
-          maxWidth: '1720px',
-          height: 'calc(100vh - 24px)',
-          maxHeight: 'calc(100vh - 24px)',
-          backgroundColor: 'var(--surface-floating)',
-          borderRadius: 'var(--radius-floating)',
-          boxShadow: 'var(--shadow-floating)',
-          border: '1px solid rgba(255, 255, 255, 0.3)',
+          maxWidth: isMobile ? '100%' : '1720px',
+          height: isMobile ? '100vh' : 'calc(100vh - 24px)',
+          maxHeight: isMobile ? '100vh' : 'calc(100vh - 24px)',
+          backgroundColor: isMobile ? '#f7f6f2' : 'var(--surface-floating)',
+          borderRadius: isMobile ? 0 : 'var(--radius-floating)',
+          boxShadow: isMobile ? 'none' : 'var(--shadow-floating)',
+          border: isMobile ? 'none' : '1px solid rgba(255, 255, 255, 0.3)',
           zIndex: 10,
           display: 'flex',
-          flexDirection: 'row',
+          flexDirection: isMobile ? 'column' : 'row',
           overflow: 'hidden',
           position: 'relative',
         }}
       >
-        {/* Left Vertical Sidebar - Fixed on left */}
+        {/* Left Vertical Sidebar - Desktop only */}
+        {!isMobile && (
         <aside
           style={{
             width: isCollapsed ? '72px' : '260px',
@@ -657,6 +682,7 @@ export function Shell({
             </div>
           )}
         </aside>
+        )}
 
         {/* Right Main Content Area - Only viewport scrolls */}
         <div
@@ -669,115 +695,300 @@ export function Shell({
             overflow: 'hidden',
           }}
         >
-          {/* Top Bar inside Content Area */}
-          <header
-            style={{
-              padding: '14px 24px',
-              borderBottom: '1px solid var(--border-light)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: '#ffffff',
-              flexShrink: 0,
-              gap: '14px',
-            }}
-          >
-            {/* Current Active Page Title */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div
-                style={{
-                  width: '5px',
-                  height: '22px',
-                  borderRadius: '3px',
-                  backgroundColor: 'var(--accent-sage-dark)',
-                }}
-              />
-              <h1
-                style={{
-                  fontSize: '1.25rem',
-                  fontWeight: 800,
-                  letterSpacing: '-0.02em',
-                  color: 'var(--text-primary)',
-                  margin: 0,
-                }}
-              >
-                {filteredNav.find((item) => item.id === currentTab)?.label || 'Dashboard'}
-              </h1>
-            </div>
+          {/* Top Bar - Responsive: Desktop Header or Mobile Header */}
+          {!isMobile ? (
+            <header
+              style={{
+                padding: '14px 24px',
+                borderBottom: '1px solid var(--border-light)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: '#ffffff',
+                flexShrink: 0,
+                gap: '14px',
+              }}
+            >
+              {/* Current Active Page Title */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '5px',
+                    height: '22px',
+                    borderRadius: '3px',
+                    backgroundColor: 'var(--accent-sage-dark)',
+                  }}
+                />
+                <h1
+                  style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 800,
+                    letterSpacing: '-0.02em',
+                    color: 'var(--text-primary)',
+                    margin: 0,
+                  }}
+                >
+                  {filteredNav.find((item) => item.id === currentTab)?.label || 'Dashboard'}
+                </h1>
+              </div>
 
-            {/* Top Action Center: Export CSV + New Requisition Button */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <LiveSyncIndicator onSyncTriggered={onSyncTriggered} />
+              {/* Top Action Center: Export CSV + New Requisition Button */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <LiveSyncIndicator onSyncTriggered={onSyncTriggered} />
 
-              {onExportCsv && (
-                <button
+                {onExportCsv && (
+                  <button
+                    type="button"
+                    onClick={onExportCsv}
+                    title="Export records to CSV file"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 15px',
+                      borderRadius: 'var(--radius-pill)',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid var(--border-strong)',
+                      color: 'var(--accent-sage-dark)',
+                      fontSize: '0.84rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(18, 36, 22, 0.05)',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'var(--accent-mint-light)';
+                      e.currentTarget.style.borderColor = 'var(--accent-sage)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#ffffff';
+                      e.currentTarget.style.borderColor = 'var(--border-strong)';
+                    }}
+                  >
+                    <Download size={15} strokeWidth={2.4} />
+                    <span>Export CSV</span>
+                  </button>
+                )}
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   type="button"
-                  onClick={onExportCsv}
-                  title="Export records to CSV file"
+                  onClick={onOpenNewRequisition}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 15px',
+                    gap: '8px',
+                    padding: '9px 18px',
                     borderRadius: 'var(--radius-pill)',
-                    backgroundColor: '#ffffff',
-                    border: '1px solid var(--border-strong)',
-                    color: 'var(--accent-sage-dark)',
-                    fontSize: '0.84rem',
+                    backgroundColor: 'var(--accent-sage)',
+                    color: '#ffffff',
+                    border: 'none',
                     fontWeight: 700,
+                    fontSize: '0.88rem',
                     cursor: 'pointer',
-                    boxShadow: '0 2px 6px rgba(18, 36, 22, 0.05)',
-                    transition: 'all 0.15s ease',
+                    boxShadow: '0 3px 12px rgba(136, 163, 131, 0.35)',
+                    transition: 'background-color 0.15s ease',
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--accent-mint-light)';
-                    e.currentTarget.style.borderColor = 'var(--accent-sage)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#ffffff';
-                    e.currentTarget.style.borderColor = 'var(--border-strong)';
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--accent-sage-hover)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--accent-sage)')}
+                >
+                  <PlusCircle size={17} strokeWidth={2.4} />
+                  <span>New Requisition</span>
+                </motion.button>
+              </div>
+            </header>
+          ) : (
+            /* Mobile Top Header (inspired by MOYA reference: clean, centered, refined) */
+            <header
+              style={{
+                backgroundColor: '#ffffff',
+                borderBottom: '1px solid #e5ede3',
+                padding: '10px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                flexShrink: 0,
+                zIndex: 20,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                {/* Menu Hamburger */}
+                <button
+                  type="button"
+                  onClick={() => setIsMobileDrawerOpen(true)}
+                  aria-label="Open Navigation Menu"
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '11px',
+                    backgroundColor: '#f1f6f0',
+                    border: '1px solid #dae7d8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#1a2e1d',
+                    cursor: 'pointer',
                   }}
                 >
-                  <Download size={15} strokeWidth={2.4} />
-                  <span>Export CSV</span>
+                  <Menu size={20} strokeWidth={2.2} />
                 </button>
-              )}
 
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={onOpenNewRequisition}
+                {/* Brand Title (Centered Luxury Style) */}
+                <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <span
+                    style={{
+                      fontSize: '0.94rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.08em',
+                      color: '#182b1c',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Requisition Slip
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.62rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.12em',
+                      color: '#6e8571',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Operations & Tally
+                  </span>
+                </div>
+
+                {/* Live Sync & Avatar */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <LiveSyncIndicator onSyncTriggered={onSyncTriggered} />
+                  <div
+                    onClick={() => setIsMobileDrawerOpen(true)}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      backgroundColor: '#1f3422',
+                      color: '#dce7d9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(18, 36, 22, 0.15)',
+                    }}
+                  >
+                    {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile Horizontal Stage Switcher Pills (styled like Reference Screen 3) */}
+              <div
+                className="no-scrollbar"
                 style={{
-                  display: 'inline-flex',
+                  display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  padding: '9px 18px',
-                  borderRadius: 'var(--radius-pill)',
-                  backgroundColor: 'var(--accent-sage)',
-                  color: '#ffffff',
-                  border: 'none',
-                  fontWeight: 700,
-                  fontSize: '0.88rem',
-                  cursor: 'pointer',
-                  boxShadow: '0 3px 12px rgba(136, 163, 131, 0.35)',
-                  transition: 'background-color 0.15s ease',
+                  gap: '6px',
+                  overflowX: 'auto',
+                  padding: '2px 0 2px 0',
+                  WebkitOverflowScrolling: 'touch',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--accent-sage-hover)')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--accent-sage)')}
               >
-                <PlusCircle size={17} strokeWidth={2.4} />
-                <span>New Requisition</span>
-              </motion.button>
-            </div>
-          </header>
+                <button
+                  type="button"
+                  onClick={() => onSelectTab('dashboard')}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '9999px',
+                    border: 'none',
+                    backgroundColor: currentTab === 'dashboard' ? '#1f3422' : '#ffffff',
+                    color: currentTab === 'dashboard' ? '#ffffff' : '#334836',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    boxShadow: currentTab === 'dashboard' ? '0 2px 8px rgba(31, 52, 34, 0.25)' : 'none',
+                    border: currentTab === 'dashboard' ? 'none' : '1px solid #dce7d9',
+                  }}
+                >
+                  Dashboard
+                </button>
+
+                {stageTabs.map((st) => {
+                  const isActive = currentTab === st.id;
+                  return (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => onSelectTab(st.id)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '9999px',
+                        border: 'none',
+                        backgroundColor: isActive ? '#1f3422' : '#ffffff',
+                        color: isActive ? '#ffffff' : '#334836',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        whiteSpace: 'nowrap',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        boxShadow: isActive ? '0 2px 8px rgba(31, 52, 34, 0.25)' : 'none',
+                        border: isActive ? 'none' : '1px solid #dce7d9',
+                      }}
+                    >
+                      <span>{st.label}</span>
+                      {st.badge > 0 && (
+                        <span
+                          style={{
+                            padding: '1px 6px',
+                            borderRadius: '9999px',
+                            backgroundColor: isActive ? '#88a383' : '#eaf2e8',
+                            color: isActive ? '#ffffff' : '#223c25',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                          }}
+                        >
+                          {st.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  onClick={() => onSelectTab('history')}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '9999px',
+                    border: 'none',
+                    backgroundColor: currentTab === 'history' ? '#1f3422' : '#ffffff',
+                    color: currentTab === 'history' ? '#ffffff' : '#334836',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    boxShadow: currentTab === 'history' ? '0 2px 8px rgba(31, 52, 34, 0.25)' : 'none',
+                    border: currentTab === 'history' ? 'none' : '1px solid #dce7d9',
+                  }}
+                >
+                  All Records
+                </button>
+              </div>
+            </header>
+          )}
 
           {/* Page Content Viewport */}
           <div
             style={{
               flex: 1,
-              padding: '20px 26px',
-              backgroundColor: 'var(--surface-floating)',
+              padding: isMobile ? '12px 14px 90px 14px' : '20px 26px',
+              backgroundColor: isMobile ? '#f7f6f2' : 'var(--surface-floating)',
               overflowY: 'auto',
               display: 'flex',
               flexDirection: 'column',
@@ -787,6 +998,391 @@ export function Shell({
             {children}
           </div>
         </div>
+
+        {/* Mobile Fixed Bottom Navigation Dock (directly inspired by reference screens 2, 3, 4) */}
+        {isMobile && (
+          <nav
+            style={{
+              position: 'fixed',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              backgroundColor: '#19281c',
+              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: '0 -6px 24px rgba(10, 20, 12, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-around',
+              padding: '6px 12px',
+              paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
+              zIndex: 900,
+            }}
+          >
+            {/* 1. Home */}
+            <button
+              type="button"
+              onClick={() => onSelectTab('dashboard')}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '2px',
+                background: 'none',
+                border: 'none',
+                color: currentTab === 'dashboard' ? '#dce7d9' : 'rgba(220, 231, 217, 0.5)',
+                cursor: 'pointer',
+                padding: '4px 8px',
+              }}
+            >
+              <LayoutDashboard size={20} strokeWidth={currentTab === 'dashboard' ? 2.5 : 1.8} />
+              <span style={{ fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.02em' }}>Home</span>
+            </button>
+
+            {/* 2. Stages Queue */}
+            <button
+              type="button"
+              onClick={() => {
+                if (['approval', 'posting', 'payment', 'audit', 'tally'].includes(currentTab)) {
+                  setIsMobileDrawerOpen(true);
+                } else {
+                  onSelectTab('approval');
+                }
+              }}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '2px',
+                background: 'none',
+                border: 'none',
+                color: ['approval', 'posting', 'payment', 'audit', 'tally'].includes(currentTab)
+                  ? '#dce7d9'
+                  : 'rgba(220, 231, 217, 0.5)',
+                cursor: 'pointer',
+                padding: '4px 8px',
+                position: 'relative',
+              }}
+            >
+              <Layers size={20} strokeWidth={['approval', 'posting', 'payment', 'audit', 'tally'].includes(currentTab) ? 2.5 : 1.8} />
+              <span style={{ fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.02em' }}>Stages</span>
+              {totalPendingStages > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '0px',
+                    right: '6px',
+                    width: '15px',
+                    height: '15px',
+                    borderRadius: '50%',
+                    backgroundColor: '#88a383',
+                    color: '#ffffff',
+                    fontSize: '0.58rem',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {totalPendingStages > 9 ? '9+' : totalPendingStages}
+                </span>
+              )}
+            </button>
+
+            {/* 3. Center Elevated + New Requisition Button */}
+            <button
+              type="button"
+              onClick={onOpenNewRequisition}
+              aria-label="New Requisition"
+              style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '50%',
+                backgroundColor: '#88a383',
+                color: '#ffffff',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 16px rgba(136, 163, 131, 0.55)',
+                marginTop: '-14px',
+                cursor: 'pointer',
+              }}
+            >
+              <Plus size={24} strokeWidth={2.8} />
+            </button>
+
+            {/* 4. All Records */}
+            <button
+              type="button"
+              onClick={() => onSelectTab('history')}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '2px',
+                background: 'none',
+                border: 'none',
+                color: currentTab === 'history' ? '#dce7d9' : 'rgba(220, 231, 217, 0.5)',
+                cursor: 'pointer',
+                padding: '4px 8px',
+              }}
+            >
+              <Archive size={20} strokeWidth={currentTab === 'history' ? 2.5 : 1.8} />
+              <span style={{ fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.02em' }}>Records</span>
+            </button>
+
+            {/* 5. Menu Drawer */}
+            <button
+              type="button"
+              onClick={() => setIsMobileDrawerOpen(true)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '2px',
+                background: 'none',
+                border: 'none',
+                color: isMobileDrawerOpen ? '#dce7d9' : 'rgba(220, 231, 217, 0.5)',
+                cursor: 'pointer',
+                padding: '4px 8px',
+              }}
+            >
+              <Menu size={20} strokeWidth={1.8} />
+              <span style={{ fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.02em' }}>Menu</span>
+            </button>
+          </nav>
+        )}
+
+        {/* Mobile Slide-Over Drawer Navigation */}
+        <AnimatePresence>
+          {isMobile && isMobileDrawerOpen && (
+            <div
+              style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 9999,
+                display: 'flex',
+              }}
+            >
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setIsMobileDrawerOpen(false)}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: 'rgba(10, 22, 14, 0.6)',
+                  backdropFilter: 'blur(3px)',
+                }}
+              />
+
+              {/* Drawer Sheet */}
+              <motion.div
+                initial={{ x: '-100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '-100%' }}
+                transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                style={{
+                  position: 'relative',
+                  width: '84%',
+                  maxWidth: '320px',
+                  height: '100%',
+                  backgroundColor: '#ffffff',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  boxShadow: '4px 0 24px rgba(0,0,0,0.2)',
+                  zIndex: 2,
+                }}
+              >
+                {/* Drawer Header Card */}
+                <div>
+                  <div
+                    style={{
+                      padding: '20px 18px',
+                      backgroundColor: '#1f3422',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div
+                        style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '50%',
+                          backgroundColor: '#dce7d9',
+                          color: '#1f3422',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 800,
+                          fontSize: '1.1rem',
+                        }}
+                      >
+                        {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '0.96rem', fontWeight: 700 }}>
+                          {user?.displayName || 'User'}
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: '#a8c2a5', textTransform: 'capitalize' }}>
+                          {isSuperAdmin ? 'Super Admin' : (user?.role || 'Guest')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsMobileDrawerOpen(false)}
+                      style={{
+                        padding: '6px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(255,255,255,0.1)',
+                        border: 'none',
+                        color: '#ffffff',
+                        cursor: 'pointer',
+                        display: 'flex',
+                      }}
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  {/* Navigation List */}
+                  <div
+                    style={{
+                      padding: '14px 10px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      overflowY: 'auto',
+                      maxHeight: 'calc(100vh - 180px)',
+                    }}
+                  >
+                    {filteredNav.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = currentTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            onSelectTab(item.id);
+                            setIsMobileDrawerOpen(false);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '11px 14px',
+                            borderRadius: '12px',
+                            border: 'none',
+                            backgroundColor: isActive ? '#eef5ec' : 'transparent',
+                            color: isActive ? '#1f3422' : '#3c5040',
+                            fontWeight: isActive ? 700 : 600,
+                            fontSize: '0.88rem',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <Icon size={18} strokeWidth={isActive ? 2.3 : 1.8} color={isActive ? '#1f3422' : '#697f6c'} />
+                            <span>{item.label}</span>
+                          </div>
+
+                          {item.badge > 0 ? (
+                            <span
+                              style={{
+                                padding: '2px 8px',
+                                borderRadius: '9999px',
+                                backgroundColor: '#1f3422',
+                                color: '#ffffff',
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                              }}
+                            >
+                              {item.badge}
+                            </span>
+                          ) : (
+                            <ChevronRight size={15} color="#b1c4af" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Drawer Footer */}
+                <div
+                  style={{
+                    padding: '16px 18px',
+                    borderTop: '1px solid #e5ede3',
+                    backgroundColor: '#fafcfa',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onOpenNewRequisition();
+                      setIsMobileDrawerOpen(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '11px',
+                      borderRadius: '9999px',
+                      backgroundColor: '#1f3422',
+                      color: '#ffffff',
+                      border: 'none',
+                      fontSize: '0.86rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Plus size={16} strokeWidth={2.4} />
+                    <span>Create New Requisition</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileDrawerOpen(false);
+                      onLogout();
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '9px',
+                      borderRadius: '9999px',
+                      backgroundColor: 'transparent',
+                      color: '#b0352b',
+                      border: '1px solid #f3cdc9',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <LogOut size={15} />
+                    <span>Log Out</span>
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </motion.main>
     </div>
   );
