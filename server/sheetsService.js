@@ -228,7 +228,10 @@ export class SheetsService {
    * Fetch all users from 'Login page' tab via Google Sheets gviz API
    */
   async fetchLoginUsers(force = false) {
-    if (!force && this.loginUsers.size > 0 && Date.now() - (this.lastLoginUsersSync || 0) < 60000) {
+    const lastSyncMs = typeof this.lastLoginUsersSync === 'number'
+      ? this.lastLoginUsersSync
+      : Date.parse(this.lastLoginUsersSync || '') || 0;
+    if (!force && this.loginUsers.size > 0 && Date.now() - lastSyncMs < 60000) {
       return Array.from(this.loginUsers.values());
     }
 
@@ -314,7 +317,7 @@ export class SheetsService {
       }
 
       this.loginUsers = usersMap;
-      this.lastLoginUsersSync = new Date().toISOString();
+      this.lastLoginUsersSync = Date.now();
       return Array.from(this.loginUsers.values());
     } catch (err) {
       console.warn('[SheetsService] Error fetching Login page users:', err.message);

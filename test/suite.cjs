@@ -447,6 +447,32 @@ async function runTestSuite() {
   // -------------------------------------------------------------------------
   console.log(cyan('\n--- 4. Authentication & User Access Isolation Tests ---'));
 
+  await asyncTest('Admin login is immediate and does not wait for Google Sheets user sync', async () => {
+    const originalFetchLoginUsers = sheetsService.fetchLoginUsers;
+    let sheetFetchCalled = false;
+    sheetsService.fetchLoginUsers = async () => {
+      sheetFetchCalled = true;
+      throw new Error('Google Sheets should not be called for admin login');
+    };
+    try {
+      const result = await authenticate('admin', 'admin123');
+      assert.ok(result.token);
+      assert.strictEqual(result.user.role, 'admin');
+      assert.strictEqual(sheetFetchCalled, false);
+    } finally {
+      sheetsService.fetchLoginUsers = originalFetchLoginUsers;
+    }
+  });
+
+  await asyncTest('Login user cache accepts the stored sync timestamp and avoids a network refresh', async () => {
+    const service = new SheetsService();
+    service.loginUsers.set('cached-user', { username: 'cached-user' });
+    service.lastLoginUsersSync = new Date().toISOString();
+    const users = await service.fetchLoginUsers();
+    assert.strictEqual(users.length, 1);
+    assert.strictEqual(users[0].username, 'cached-user');
+  });
+
   await asyncTest('Valid credentials return JWT token and verified user profile', async () => {
     const authVivek = await authenticate('vivek', 'vivek123');
     assert.ok(authVivek.token);

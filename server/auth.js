@@ -103,9 +103,52 @@ export function isSuperAdmin(user) {
   );
 }
 
+function authenticateSeedUser(trimmedUser, trimmedPass) {
+  const user = USERS.find((candidate) => candidate.username.toLowerCase() === trimmedUser);
+  if (!user) return null;
+
+  let match = bcrypt.compareSync(trimmedPass, user.passwordHash);
+  if (!match && user.username === 'admin' && (trimmedPass === 'admin' || trimmedPass === 'admin123')) {
+    match = true;
+  }
+  if (!match) return null;
+
+  const permissions = {
+    dashboard: 'Full',
+    approval: user.role === 'admin' || user.role === 'ea' ? 'Full' : 'No',
+    posting: user.role === 'admin' || user.role === 'posting' ? 'Full' : 'No',
+    payment: user.role === 'admin' || user.role === 'payment' ? 'Full' : 'No',
+    audit: user.role === 'admin' || user.role === 'auditor' ? 'Full' : 'No',
+    history: 'Full',
+    admin: user.role === 'admin' ? 'Full' : 'No',
+  };
+  const profile = {
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName,
+    role: user.role,
+    requesterName: user.requesterName,
+    isSuperAdmin: user.role === 'admin',
+    firmAccess: 'ALL',
+    permissions,
+  };
+
+  return {
+    token: jwt.sign(profile, CONFIG.JWT_SECRET, { expiresIn: CONFIG.JWT_EXPIRES_IN }),
+    user: profile,
+  };
+}
+
 export async function authenticate(username, password) {
   const trimmedUser = (username || '').trim().toLowerCase();
   const trimmedPass = (password || '').trim();
+
+  // Admin must never wait for Google Sheets/network warm-up. Invalid admin
+  // credentials still fall through to the dynamic Login sheet check.
+  if (trimmedUser === 'admin') {
+    const immediateAdmin = authenticateSeedUser(trimmedUser, trimmedPass);
+    if (immediateAdmin) return immediateAdmin;
+  }
 
   // 1. Try to find user in dynamic Login page sheet
   let sheetUsers = [];
@@ -187,51 +230,7 @@ export async function authenticate(username, password) {
   }
 
   // 2. Fallback to predefined seed users
-  const user = USERS.find((u) => u.username.toLowerCase() === trimmedUser);
-  if (!user) return null;
-
-  let match = bcrypt.compareSync(trimmedPass, user.passwordHash);
-  if (!match && user.username === 'admin' && (trimmedPass === 'admin' || trimmedPass === 'admin123')) {
-    match = true;
-  }
-  if (!match) return null;
-
-  const defaultPerms = {
-    dashboard: 'Full',
-    approval: user.role === 'admin' || user.role === 'ea' ? 'Full' : 'No',
-    posting: user.role === 'admin' || user.role === 'posting' ? 'Full' : 'No',
-    payment: user.role === 'admin' || user.role === 'payment' ? 'Full' : 'No',
-    audit: user.role === 'admin' || user.role === 'auditor' ? 'Full' : 'No',
-    history: 'Full',
-    admin: user.role === 'admin' ? 'Full' : 'No',
-  };
-
-  const token = jwt.sign(
-    {
-      id: user.id,
-      username: user.username,
-      displayName: user.displayName,
-      role: user.role,
-      requesterName: user.requesterName,
-      firmAccess: 'ALL',
-      permissions: defaultPerms,
-    },
-    CONFIG.JWT_SECRET,
-    { expiresIn: CONFIG.JWT_EXPIRES_IN }
-  );
-
-  return {
-    token,
-    user: {
-      id: user.id,
-      username: user.username,
-      displayName: user.displayName,
-      role: user.role,
-      requesterName: user.requesterName,
-      firmAccess: 'ALL',
-      permissions: defaultPerms,
-    },
-  };
+  return authenticateSeedUser(trimmedUser, trimmedPass);
 }
 
 export function authMiddleware(req, res, next) {
