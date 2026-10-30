@@ -3,6 +3,7 @@ import { Search, Filter, CheckCircle2, Clock, AlertTriangle, ArrowRight, Papercl
 import { StageBadge } from '../components/StageBadge';
 import { MobileRequisitionCard } from '../components/MobileRequisitionCard';
 import { exportRequisitionsCsv } from '../utils/csvExport';
+import { useIsMobile } from '../utils/useIsMobile';
 
 export function StageQueueView({
   stageType, // 'APPROVAL' | 'POSTING' | 'PAYMENT' | 'AUDIT' | 'ALL'
@@ -13,6 +14,7 @@ export function StageQueueView({
   onOpenStageAction,
   user,
 }) {
+  const isMobile = useIsMobile(768);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMode, setFilterMode] = useState('PENDING'); // 'PENDING' | 'COMPLETED' | 'ALL'
   const [currentPage, setCurrentPage] = useState(1);
@@ -92,27 +94,29 @@ export function StageQueueView({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', height: '100%', minHeight: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '14px', height: '100%', minHeight: 0 }}>
       {/* Stage Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', flexShrink: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: isMobile ? '8px' : '12px', flexShrink: 0 }}>
         <div>
-          <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px', marginBottom: 0 }}>
+          <h2 style={{ fontSize: isMobile ? '1.18rem' : '1.45rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px', marginBottom: 0 }}>
             {title}
           </h2>
-          <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginTop: '2px', marginBottom: 0 }}>{description}</p>
+          {description && description.trim() && (
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px', marginBottom: 0 }}>{description}</p>
+          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           {/* Status Mode Tabs */}
           {stageType !== 'ALL' && (
             <div
               style={{
                 display: 'inline-flex',
-                padding: '4px',
+                padding: '3px',
                 borderRadius: 'var(--radius-pill)',
                 backgroundColor: 'var(--surface-subtle)',
                 border: '1px solid var(--border-light)',
-                gap: '4px',
+                gap: '3px',
               }}
             >
               {['PENDING', 'COMPLETED'].map((mode) => (
@@ -121,12 +125,12 @@ export function StageQueueView({
                   type="button"
                   onClick={() => handleFilterChange(mode)}
                   style={{
-                    padding: '7px 16px',
+                    padding: isMobile ? '5px 12px' : '7px 16px',
                     borderRadius: 'var(--radius-pill)',
                     border: 'none',
                     backgroundColor: filterMode === mode ? 'var(--accent-sage-dark)' : 'transparent',
                     color: filterMode === mode ? '#ffffff' : 'var(--text-secondary)',
-                    fontSize: '0.84rem',
+                    fontSize: isMobile ? '0.78rem' : '0.84rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
@@ -192,8 +196,8 @@ export function StageQueueView({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
-          padding: '10px 18px',
+          gap: isMobile ? '8px' : '12px',
+          padding: isMobile ? '8px 14px' : '10px 18px',
           borderRadius: '14px',
           backgroundColor: '#ffffff',
           border: '1px solid var(--border-light)',
@@ -500,7 +504,7 @@ export function StageQueueView({
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '14px',
+          gap: '8px',
           paddingBottom: '90px', // Extra padding for mobile bottom navigation dock
         }}
       >
