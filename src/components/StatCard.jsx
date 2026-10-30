@@ -1,6 +1,25 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react';
+import {
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
+  CheckSquare,
+  Send,
+  DollarSign,
+  ShieldCheck,
+  BookCheck,
+} from 'lucide-react';
+import { useIsMobile } from '../utils/useIsMobile';
+
+const STAGE_ICONS = {
+  approval: CheckSquare,
+  posting: Send,
+  payment: DollarSign,
+  audit: ShieldCheck,
+  tally: BookCheck,
+};
 
 export function StatCard({
   stageName,
@@ -10,6 +29,7 @@ export function StatCard({
   onSelectFilter,
   onNavigate,
 }) {
+  const isMobile = useIsMobile(768);
   const hasAnimatedRef = useRef(false);
   const [animated, setAnimated] = useState(false);
 
@@ -21,6 +41,113 @@ export function StatCard({
   }, [counters]);
 
   const total = counters.pending + counters.completed + counters.overdue;
+  const StageIcon = STAGE_ICONS[stageKey] || CheckSquare;
+
+  // Professional Compact Mobile View
+  if (isMobile) {
+    return (
+      <motion.div
+        whileTap={{ scale: 0.98 }}
+        onClick={() => onNavigate?.(stageKey)}
+        style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          padding: '11px 13px',
+          border: '1px solid var(--border-light)',
+          boxShadow: '0 2px 8px rgba(18, 36, 22, 0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          gap: '8px',
+          cursor: 'pointer',
+          position: 'relative',
+          overflow: 'hidden',
+          gridColumn: stageKey === 'tally' ? 'span 2' : 'span 1',
+        }}
+      >
+        {/* Subtle accent corner glow */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '40px',
+            height: '40px',
+            background: 'radial-gradient(circle at top right, var(--accent-mint) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Top: Icon + Stage Title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div
+            style={{
+              width: '26px',
+              height: '26px',
+              borderRadius: '7px',
+              backgroundColor: 'var(--accent-mint-light)',
+              color: 'var(--accent-sage-dark)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <StageIcon size={14} strokeWidth={2.4} />
+          </div>
+          <span
+            style={{
+              fontSize: '0.80rem',
+              fontWeight: 800,
+              color: 'var(--text-primary)',
+              lineHeight: 1.15,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {stageName}
+          </span>
+        </div>
+
+        {/* Metrics: Big Pending Number + Done Count */}
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: '2px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
+            <span
+              className="num-financial"
+              style={{
+                fontSize: '1.4rem',
+                fontWeight: 800,
+                color: counters.pending > 0 ? 'var(--text-primary)' : 'var(--text-muted)',
+                lineHeight: 1,
+              }}
+            >
+              {counters.pending}
+            </span>
+            <span
+              style={{
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                color: counters.pending > 0 ? 'var(--status-pending-text)' : 'var(--text-muted)',
+                backgroundColor: counters.pending > 0 ? 'var(--status-pending-bg)' : 'var(--surface-subtle)',
+                padding: '1px 5px',
+                borderRadius: '5px',
+              }}
+            >
+              Pending
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--accent-sage-dark)' }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+              {counters.completed} done
+            </span>
+            <ArrowRight size={12} strokeWidth={2.2} />
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
