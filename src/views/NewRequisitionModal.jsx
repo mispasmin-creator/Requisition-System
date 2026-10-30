@@ -27,12 +27,14 @@ export function NewRequisitionModal({ isOpen, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [idempotencyKey, setIdempotencyKey] = useState('');
+  const [isCustomRequester, setIsCustomRequester] = useState(false);
 
   // Load dropdown options from Master tab
   useEffect(() => {
     if (isOpen) {
       setIdempotencyKey(uuidv4());
       setError('');
+      setIsCustomRequester(false);
       api.getMasterDropdowns().then((data) => {
         if (data) {
           setDropdowns(data);
@@ -80,6 +82,7 @@ export function NewRequisitionModal({ isOpen, onClose, onSuccess }) {
         reason: '',
         attachments: '',
       });
+      setIsCustomRequester(false);
     } catch (err) {
       setError(err.message || 'Failed to submit requisition.');
     } finally {
@@ -110,19 +113,77 @@ export function NewRequisitionModal({ isOpen, onClose, onSuccess }) {
         )}
 
         {/* Name Of The Requester */}
-        <SearchableSelect
-          label="Name Of The Requester    "
-          required
-          options={dropdowns.requesters}
-          value={formData.requesterName}
-          onChange={(val) => setFormData({ ...formData, requesterName: val })}
-          placeholder="Select Requester..."
-        />
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              Name Of The Requester <span style={{ color: '#c0392b' }}>*</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => setIsCustomRequester(!isCustomRequester)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--accent-sage-dark)',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                backgroundColor: 'var(--accent-mint-light)',
+                transition: 'background-color 0.15s ease',
+              }}
+              title="Toggle between dropdown list and typing custom name"
+            >
+              {isCustomRequester ? '📋 Select from dropdown' : '✏️ Type other name'}
+            </button>
+          </div>
+
+          {isCustomRequester ? (
+            <div>
+              <input
+                type="text"
+                required
+                value={formData.requesterName}
+                onChange={(e) => setFormData({ ...formData, requesterName: e.target.value })}
+                placeholder="Enter Requester Name manually (e.g. Ramesh Kumar)..."
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-light)',
+                  backgroundColor: '#ffffff',
+                  fontSize: '0.92rem',
+                  outline: 'none',
+                  boxShadow: 'var(--shadow-card)',
+                }}
+                autoFocus
+              />
+              <span style={{ display: 'block', fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Manual text input mode. Click "Select from dropdown" above to pick from master list.
+              </span>
+            </div>
+          ) : (
+            <SearchableSelect
+              required
+              allowCustom
+              onToggleCustom={() => setIsCustomRequester(true)}
+              options={dropdowns.requesters}
+              value={formData.requesterName}
+              onChange={(val) => setFormData({ ...formData, requesterName: val })}
+              placeholder="Select Requester or type custom name..."
+            />
+          )}
+        </div>
 
         {/* Firm Name */}
         <SearchableSelect
           label="Firm Name    "
           required
+          allowCustom
           options={dropdowns.firmNames}
           value={formData.firmName}
           onChange={(val) => setFormData({ ...formData, firmName: val })}
