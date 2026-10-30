@@ -63,6 +63,8 @@ export function StatCard({
           position: 'relative',
           overflow: 'hidden',
           gridColumn: stageKey === 'tally' ? 'span 2' : 'span 1',
+          touchAction: 'pan-y',
+          WebkitTapHighlightColor: 'transparent',
         }}
       >
         {/* Subtle accent corner glow */}

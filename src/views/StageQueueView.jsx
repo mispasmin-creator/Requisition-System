@@ -94,7 +94,7 @@ export function StageQueueView({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '14px', height: '100%', minHeight: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '14px', height: isMobile ? 'auto' : '100%', minHeight: 0, flex: isMobile ? 'none' : 1 }}>
       {/* Stage Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: isMobile ? '8px' : '12px', flexShrink: 0 }}>
         <div>
@@ -518,7 +518,8 @@ export function StageQueueView({
           display: 'flex',
           flexDirection: 'column',
           gap: '8px',
-          paddingBottom: '90px', // Extra padding for mobile bottom navigation dock
+          paddingBottom: '24px',
+          touchAction: 'pan-y',
         }}
       >
         {filtered.length === 0 ? (

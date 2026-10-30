@@ -160,8 +160,8 @@ export function Shell({
   return (
     <div
       style={{
-        height: '100vh',
-        maxHeight: '100vh',
+        height: isMobile ? '100dvh' : '100vh',
+        maxHeight: isMobile ? '100dvh' : '100vh',
         padding: isMobile ? 0 : '12px 18px',
         position: 'relative',
         display: 'flex',
@@ -235,8 +235,8 @@ export function Shell({
         style={{
           width: '100%',
           maxWidth: isMobile ? '100%' : '1720px',
-          height: isMobile ? '100vh' : 'calc(100vh - 24px)',
-          maxHeight: isMobile ? '100vh' : 'calc(100vh - 24px)',
+          height: isMobile ? '100dvh' : 'calc(100vh - 24px)',
+          maxHeight: isMobile ? '100dvh' : 'calc(100vh - 24px)',
           backgroundColor: isMobile ? '#f7f6f2' : 'var(--surface-floating)',
           borderRadius: isMobile ? 0 : 'var(--radius-floating)',
           boxShadow: isMobile ? 'none' : 'var(--shadow-floating)',
@@ -895,6 +895,7 @@ export function Shell({
                   overflowX: 'auto',
                   padding: '2px 0 2px 0',
                   WebkitOverflowScrolling: 'touch',
+                  touchAction: 'pan-x',
                 }}
               >
                 <button
@@ -985,11 +986,16 @@ export function Shell({
 
           {/* Page Content Viewport */}
           <div
+            id="main-content-viewport"
             style={{
               flex: 1,
-              padding: isMobile ? '12px 14px 90px 14px' : '20px 26px',
+              padding: isMobile ? '12px 14px 110px 14px' : '20px 26px',
               backgroundColor: isMobile ? '#f7f6f2' : 'var(--surface-floating)',
               overflowY: 'auto',
+              overflowX: 'hidden',
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehaviorY: 'contain',
+              touchAction: 'pan-y',
               display: 'flex',
               flexDirection: 'column',
               minHeight: 0,

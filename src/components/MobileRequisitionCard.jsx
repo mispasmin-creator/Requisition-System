@@ -102,6 +102,8 @@ export function MobileRequisitionCard({
         cursor: 'pointer',
         position: 'relative',
         transition: 'all 0.15s ease',
+        touchAction: 'pan-y',
+        WebkitTapHighlightColor: 'transparent',
       }}
     >
       {/* Top Row: RS No + Requester + Amount */}

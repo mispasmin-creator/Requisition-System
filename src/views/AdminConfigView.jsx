@@ -23,6 +23,7 @@ import {
   Download,
 } from 'lucide-react';
 import { exportUsersCsv } from '../utils/csvExport';
+import { useIsMobile } from '../utils/useIsMobile';
 
 const PAGE_KEYS = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -68,6 +69,7 @@ const PRESETS = {
 };
 
 export function AdminConfigView({ user }) {
+  const isMobile = useIsMobile(768);
   const [activeMainTab, setActiveMainTab] = useState('USERS'); // 'USERS' | 'SCHEMA' | 'APPS_SCRIPT'
   const [usersList, setUsersList] = useState([]);
   const [firmOptions, setFirmOptions] = useState([]);
@@ -267,7 +269,7 @@ export function AdminConfigView({ user }) {
   return (
     <>
       <style>{`[data-admin-stats] > div:nth-child(3), button[hidden] { display: none !important; }`}</style>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', minHeight: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: isMobile ? 'auto' : '100%', minHeight: 0, flex: isMobile ? 'none' : 1 }}>
         {/* Top Header Banner */}
         <div
           style={{

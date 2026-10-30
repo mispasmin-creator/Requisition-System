@@ -138,6 +138,15 @@ button, input, select, textarea {
 
   body {
     background-attachment: scroll;
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Mobile scroll viewport optimization */
+  #main-content-viewport {
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+    overscroll-behavior-y: contain !important;
   }
 }
 

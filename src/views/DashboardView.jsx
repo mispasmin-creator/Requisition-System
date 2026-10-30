@@ -383,6 +383,8 @@ export function DashboardView({
                     justifyContent: 'space-between',
                     gap: '10px',
                     cursor: 'pointer',
+                    touchAction: 'pan-y',
+                    WebkitTapHighlightColor: 'transparent',
                   }}
                 >
                   {/* Left: Icon Badge + Requester Info */}
