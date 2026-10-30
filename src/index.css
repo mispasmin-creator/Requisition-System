@@ -1,0 +1,110 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --font-main: 'Calibri', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  /* Forest palette from visual reference */
+  --bg-deep-forest: #142217;
+  --bg-forest-grad: radial-gradient(circle at 50% 20%, #1e3324 0%, #111e14 70%, #0c160e 100%);
+  --surface-floating: #fcfdfc;
+  --surface-card: #ffffff;
+  --surface-subtle: #f4f7f3;
+  --surface-hover: #edf3ec;
+
+  /* Sage and mint accents */
+  --accent-sage: #88a383;
+  --accent-sage-dark: #2a472f;
+  --accent-sage-hover: #75926f;
+  --accent-mint: #dce7d9;
+  --accent-mint-light: #eaf1e7;
+  --accent-mint-subtle: #f5f8f3;
+
+  /* Typography */
+  --text-primary: #122416;
+  --text-secondary: #485c4c;
+  --text-muted: #748877;
+  --text-white: #ffffff;
+
+  /* Borders & Shadows */
+  --border-light: #e0e9df;
+  --border-strong: #c2d4c0;
+  --radius-floating: 28px;
+  --radius-card: 18px;
+  --radius-pill: 9999px;
+  --radius-sm: 8px;
+
+  --shadow-floating: 0 24px 60px -12px rgba(4, 15, 8, 0.45), 0 8px 24px -6px rgba(0, 0, 0, 0.25);
+  --shadow-card: 0 4px 16px -2px rgba(18, 36, 22, 0.05), 0 2px 6px -1px rgba(18, 36, 22, 0.03);
+  --shadow-dropdown: 0 12px 32px -4px rgba(18, 36, 22, 0.15);
+  --shadow-bubble: 0 30px 70px -10px rgba(0, 0, 0, 0.4);
+
+  /* Status Colors */
+  --status-pending-bg: #eaf3e8;
+  --status-pending-text: #244e24;
+  --status-pending-border: #bcdbb7;
+
+  --status-completed-bg: #d7eed3;
+  --status-completed-text: #144917;
+  --status-completed-border: #99d194;
+
+  --status-overdue-bg: #fde8e7;
+  --status-overdue-text: #8e1f1a;
+  --status-overdue-border: #f7b5b1;
+
+  --status-notstarted-bg: #f0f3ef;
+  --status-notstarted-text: #667568;
+  --status-notstarted-border: #d4ddd3;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-main);
+  background: var(--bg-deep-forest);
+  background-image: var(--bg-forest-grad);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+/* Tabular figures for financial numbers */
+.num-financial {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(136, 163, 131, 0.35);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(136, 163, 131, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
