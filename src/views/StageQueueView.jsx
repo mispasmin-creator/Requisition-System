@@ -399,9 +399,22 @@ export function StageQueueView({
                               );
                             })()
                           ) : (
-                            <span style={{ fontSize: '0.78rem', color: 'var(--accent-sage-dark)', fontWeight: 600 }}>
-                              ✓ Completed
-                            </span>
+                            <button
+                              type="button"
+                              onClick={() => onOpenStageAction(r, 'DETAILS')}
+                              style={{
+                                padding: '4px 11px',
+                                borderRadius: 'var(--radius-pill)',
+                                backgroundColor: '#edf5eb',
+                                color: '#1f4023',
+                                border: '1px solid #cce2ca',
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              View Details
+                            </button>
                           )}
                         </td>
                       )}

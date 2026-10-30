@@ -128,6 +128,205 @@ export function StageActionModal({ isOpen, onClose, requisition, stageType, onSu
     }
   };
 
+  const permKey = stageType ? stageType.toLowerCase() : null;
+  const isSuper =
+    user?.isSuperAdmin ||
+    user?.role === 'admin' ||
+    user?.role === 'super_admin' ||
+    user?.role === 'super admin' ||
+    user?.username?.toLowerCase() === 'admin';
+  const isViewOnlyUser = !isSuper && permKey && user?.permissions?.[permKey] === 'View';
+
+  const isReadOnly =
+    stageType === 'DETAILS' ||
+    stageType === 'VIEW' ||
+    stageType === 'ALL' ||
+    isViewOnlyUser ||
+    (stageType === 'APPROVAL' && !!requisition.actualApproval && requisition.paidField !== 'Hold') ||
+    (stageType === 'POSTING' && !!requisition.actualPosting) ||
+    (stageType === 'PAYMENT' && !!requisition.actualPayment) ||
+    (stageType === 'AUDIT' && !!requisition.actualAudit) ||
+    (stageType === 'TALLY' && !!requisition.actualTally);
+
+  // Read-Only Requisition Details View (used for Completed tab & All Records)
+  if (isReadOnly) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} title={`Requisition Details — ${requisition.rsIndentNo}`} maxWidth="580px">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Record Overview Summary Card */}
+          <div
+            style={{
+              padding: '16px',
+              backgroundColor: 'var(--surface-subtle)',
+              borderRadius: '16px',
+              border: '1px solid var(--border-light)',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '10px',
+              fontSize: '0.85rem',
+            }}
+          >
+            <div>
+              <span style={{ color: 'var(--text-muted)' }}>Requester:</span>{' '}
+              <strong>{requisition.requesterName}</strong>
+            </div>
+            <div>
+              <span style={{ color: 'var(--text-muted)' }}>Firm:</span>{' '}
+              <strong>{requisition.firmName || '—'}</strong>
+            </div>
+            <div>
+              <span style={{ color: 'var(--text-muted)' }}>Requested Amount:</span>{' '}
+              <strong className="num-financial" style={{ color: 'var(--accent-sage-dark)' }}>
+                ₹{Number(requisition.amount || 0).toLocaleString('en-IN')}
+              </strong>
+            </div>
+            <div>
+              <span style={{ color: 'var(--text-muted)' }}>Payment Mode:</span>{' '}
+              <strong>{requisition.mode || '—'}</strong>
+            </div>
+            {requisition.approvedAmount && (
+              <div style={{ gridColumn: 'span 2' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Approved Amount:</span>{' '}
+                <strong style={{ color: '#166534' }}>
+                  ₹{Number(requisition.approvedAmount).toLocaleString('en-IN')}
+                </strong>
+                {requisition.paidField && (
+                  <span style={{ marginLeft: '8px', fontSize: '0.74rem', padding: '1px 6px', borderRadius: '4px', backgroundColor: '#eaf2e8', color: '#1f4023', fontWeight: 700 }}>
+                    Decision: {requisition.paidField}
+                  </span>
+                )}
+              </div>
+            )}
+            <div style={{ gridColumn: 'span 2' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Reason / Purpose:</span>{' '}
+              <span>{requisition.reason || '—'}</span>
+            </div>
+            {(requisition.attachments || requisition.attachmentUrl) && (
+              <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '4px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Attachment:</span>
+                <a
+                  href={requisition.attachments || requisition.attachmentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    backgroundColor: '#e0f2fe',
+                    color: '#0369a1',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                  }}
+                >
+                  <Paperclip size={12} />
+                  <span>Open File in Drive ↗</span>
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Workflow Stage Timeline History */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <h4 style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0 0 0' }}>
+              Workflow Progression & Status
+            </h4>
+
+            {/* 1. Approval */}
+            <div style={{ padding: '10px 12px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#182b1c' }}>1. Management Approval</span>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  {requisition.actualApproval ? `Completed: ${requisition.actualApproval}` : 'Not completed yet'}
+                </div>
+              </div>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '9999px', backgroundColor: requisition.actualApproval ? '#d7eed3' : '#f0f3ef', color: requisition.actualApproval ? '#144917' : '#667568' }}>
+                {requisition.actualApproval ? 'Approved' : 'Pending'}
+              </span>
+            </div>
+
+            {/* 2. Posting */}
+            <div style={{ padding: '10px 12px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#182b1c' }}>2. Accounting Posting</span>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  {requisition.actualPosting ? `Completed: ${requisition.actualPosting}` : 'Not completed yet'}
+                </div>
+              </div>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '9999px', backgroundColor: requisition.actualPosting ? '#d7eed3' : '#f0f3ef', color: requisition.actualPosting ? '#144917' : '#667568' }}>
+                {requisition.actualPosting ? 'Posted' : 'Pending'}
+              </span>
+            </div>
+
+            {/* 3. Payment */}
+            <div style={{ padding: '10px 12px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#182b1c' }}>3. Payment Processing</span>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  {requisition.actualPayment ? `Completed: ${requisition.actualPayment}` : 'Not completed yet'}
+                  {requisition.remarks && ` • Note: ${requisition.remarks}`}
+                </div>
+              </div>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '9999px', backgroundColor: requisition.actualPayment ? '#d7eed3' : '#f0f3ef', color: requisition.actualPayment ? '#144917' : '#667568' }}>
+                {requisition.actualPayment ? 'Paid' : 'Pending'}
+              </span>
+            </div>
+
+            {/* 4. Audit */}
+            <div style={{ padding: '10px 12px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#182b1c' }}>4. Audit Verification</span>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  {requisition.actualAudit ? `Completed: ${requisition.actualAudit}` : 'Not completed yet'}
+                </div>
+              </div>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '9999px', backgroundColor: requisition.actualAudit ? '#d7eed3' : '#f0f3ef', color: requisition.actualAudit ? '#144917' : '#667568' }}>
+                {requisition.actualAudit ? 'Audited' : 'Pending'}
+              </span>
+            </div>
+
+            {/* 5. Tally */}
+            <div style={{ padding: '10px 12px', borderRadius: '12px', backgroundColor: '#ffffff', border: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#182b1c' }}>5. Tally Entry</span>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  {requisition.actualTally ? `Completed: ${requisition.actualTally}` : 'Not completed yet'}
+                  {requisition.tallyRemark && ` • Note: ${requisition.tallyRemark}`}
+                </div>
+              </div>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '9999px', backgroundColor: requisition.actualTally ? '#d7eed3' : '#f0f3ef', color: requisition.actualTally ? '#144917' : '#667568' }}>
+                {requisition.actualTally ? 'Done' : 'Pending'}
+              </span>
+            </div>
+          </div>
+
+          {/* Close Action - No submit button in Details View */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: '9px 24px',
+                borderRadius: 'var(--radius-pill)',
+                backgroundColor: 'var(--accent-sage-dark)',
+                color: '#ffffff',
+                border: 'none',
+                fontSize: '0.88rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(42, 71, 47, 0.25)',
+              }}
+            >
+              Close Details
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
   const exceedsRequested =
     stageType === 'APPROVAL' && parseFloat(formData.approvedAmount) > (requisition.amount || 0);
   const requiresDecisionRemark =

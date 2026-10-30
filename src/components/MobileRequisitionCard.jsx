@@ -75,10 +75,21 @@ export function MobileRequisitionCard({
     else stageBadge = { label: 'Completed', bg: '#d7eed3', color: '#144917' };
   }
 
+  // Handler for card clicks: always open read-only Details if in Completed tab or if stage action is already finished
+  const handleCardClick = () => {
+    if (filterMode === 'COMPLETED' || !isPendingAction || !hasStagePerm || stageType === 'ALL') {
+      onOpenStageAction?.(r, 'DETAILS');
+    } else {
+      onOpenStageAction?.(r, stageType);
+    }
+  };
+
+  const attachmentLink = r.attachments || r.attachmentUrl;
+
   return (
     <motion.div
       whileTap={{ scale: 0.99 }}
-      onClick={() => onOpenStageAction?.(r, stageType || 'ALL')}
+      onClick={handleCardClick}
       style={{
         backgroundColor: '#ffffff',
         borderRadius: '15px',
@@ -164,7 +175,7 @@ export function MobileRequisitionCard({
         </div>
       </div>
 
-      {/* Bottom Row: Metadata (Date, Mode, Reason) + Status Badge or Action Button */}
+      {/* Bottom Row: Metadata (Date, Mode, Reason) + Status Badge / Action Button */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, overflow: 'hidden' }}>
           <span style={{ fontSize: '0.72rem', color: '#68806b', whiteSpace: 'nowrap' }}>
@@ -204,13 +215,13 @@ export function MobileRequisitionCard({
             </span>
           )}
 
-          {r.attachmentUrl && (
+          {attachmentLink && (
             <a
-              href={r.attachmentUrl}
+              href={attachmentLink}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              title="Open Attachment"
+              title="Open Attachment in Drive"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -219,7 +230,7 @@ export function MobileRequisitionCard({
                 fontSize: '0.68rem',
                 fontWeight: 700,
                 textDecoration: 'none',
-                padding: '1px 4px',
+                padding: '1px 5px',
                 borderRadius: '4px',
                 backgroundColor: '#edf5eb',
               }}
@@ -230,7 +241,7 @@ export function MobileRequisitionCard({
           )}
         </div>
 
-        {/* Right: Action Button or Status Badge */}
+        {/* Right: Action Button or Status Badge + Details Option */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <span
             style={{
@@ -246,7 +257,8 @@ export function MobileRequisitionCard({
             {stageBadge.label}
           </span>
 
-          {hasStagePerm && isPendingAction && stageType !== 'ALL' ? (
+          {/* Pending Action Mode: Action Button */}
+          {filterMode === 'PENDING' && hasStagePerm && isPendingAction && stageType !== 'ALL' ? (
             <button
               type="button"
               onClick={(e) => {
@@ -273,7 +285,31 @@ export function MobileRequisitionCard({
               <ArrowRight size={11} strokeWidth={2.4} />
             </button>
           ) : (
-            <ChevronRight size={14} color="#9bb399" />
+            /* Completed / Read-Only Mode: Details View Pill */
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenStageAction?.(r, 'DETAILS');
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '2px',
+                padding: '3px 8px',
+                borderRadius: '9999px',
+                backgroundColor: '#edf5eb',
+                color: '#1f4023',
+                border: '1px solid #cce2ca',
+                fontSize: '0.70rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span>Details</span>
+              <ChevronRight size={11} strokeWidth={2.5} />
+            </button>
           )}
         </div>
       </div>

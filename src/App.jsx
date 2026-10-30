@@ -67,7 +67,7 @@ function MainApp() {
   };
 
   const handleOpenStageAction = (requisition, stageType) => {
-    if (stageType === 'PAYMENT') {
+    if (stageType === 'PAYMENT' && !requisition.actualPayment) {
       const paymentFormUrl = getPaymentFormUrl(requisition);
       if (paymentFormUrl) {
         window.open(paymentFormUrl, '_blank', 'noopener,noreferrer');
