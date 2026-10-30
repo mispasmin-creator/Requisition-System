@@ -295,7 +295,6 @@ export function StageActionModal({ isOpen, onClose, requisition, stageType, onSu
                 }}
               >
                 <option value="Yes">Yes (Approved for payment processing)</option>
-                <option value="Hold">Hold</option>
                 <option value="Rejected">Rejected</option>
               </select>
               <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>

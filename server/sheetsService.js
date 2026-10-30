@@ -1,6 +1,27 @@
-import { CONFIG, colToIdx, idxToCol } from './config.js';
+import { CONFIG } from './config.js';
 import { schemaValidator } from './schemaValidator.js';
 import { google } from 'googleapis';
+
+// Only fields that represent an actual user/business mutation participate in
+// optimistic locking. Formula-owned Planned/Delay columns recalculate in the
+// sheet and must refresh the UI without making an open form falsely stale.
+const CONCURRENCY_FIELDS = [
+  'timestamp',
+  'requesterName',
+  'firmName',
+  'amount',
+  'mode',
+  'paymentLocation',
+  'reason',
+  'attachments',
+  'actualApproval',
+  'paidField',
+  'approvedAmount',
+  'actualPosting',
+  'actualPayment',
+  'paymentAttachment',
+  'actualAudit',
+];
 
 /**
  * Format timestamp strictly as MM/DD/YYYY HH:MM:SS in Asia/Kolkata timezone
@@ -206,7 +227,11 @@ export class SheetsService {
   /**
    * Fetch all users from 'Login page' tab via Google Sheets gviz API
    */
-  async fetchLoginUsers() {
+  async fetchLoginUsers(force = false) {
+    if (!force && this.loginUsers.size > 0 && Date.now() - (this.lastLoginUsersSync || 0) < 60000) {
+      return Array.from(this.loginUsers.values());
+    }
+
     try {
       const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(CONFIG.LOGIN_TAB)}`;
       const controller = new AbortController();
@@ -453,7 +478,12 @@ export class SheetsService {
         // Skip header repetitions if any
         if (rsIndentNo.toLowerCase().includes('indent') || rsIndentNo.toLowerCase() === 'need') continue;
 
-        const sheetRowNumber = r + 1;
+        // GViz omits blank leading rows, so its array index is not the real
+        // spreadsheet row number. Anchor records to the configured header row
+        // once the header has been detected (header row 6 -> first data row 7).
+        const sheetRowNumber = headerRowIndex !== -1
+          ? CONFIG.HEADER_ROW + (r - headerRowIndex)
+          : r + 1;
         const currentRecord = this.records.get(rsIndentNo);
 
         // Helper to format date strings and clean Date() expressions
@@ -507,9 +537,6 @@ export class SheetsService {
 
           // Stage 4: Audit Payments
           paymentAttachment: fmtVal(row[20]),       // Col U: Payment attachment
-          actualAudit: fmtVal(row[21]),            // Col V: Actual 4 (Timestamp)
-          delayAudit: fmtVal(row[22]) || '—',      // Col W: Delay 4 (Protected Formula)
-
           paymentProof: fmtVal(row[20]) || currentRecord?.paymentProof || '',
           // Audit columns follow the payment attachment column: V/W/X.
           plannedAudit: fmtVal(row[21]) || '—',
@@ -522,16 +549,23 @@ export class SheetsService {
           lastUpdated: currentRecord?.lastUpdated || null,
         };
 
-        // Compare only business data. Sync metadata (version/lastUpdated)
-        // must not create a false concurrency conflict on every poll.
-        const businessDataChanged = !currentRecord || Object.keys(record).some((key) => {
+        // Refresh all changed sheet values, but only increment the optimistic
+        // lock for user-editable business fields. Formula recalculation in
+        // Planned/Delay columns is not a concurrent user edit.
+        const sheetDataChanged = !currentRecord || Object.keys(record).some((key) => {
           if (key === 'version' || key === 'lastUpdated') return false;
           return currentRecord[key] !== record[key];
         });
+        const conflictRelevantChange =
+          !currentRecord || CONCURRENCY_FIELDS.some((key) => currentRecord[key] !== record[key]);
 
-        if (businessDataChanged) {
-          record.version = (currentRecord?.version || 0) + 1;
-          record.lastUpdated = new Date().toISOString();
+        if (sheetDataChanged) {
+          record.version = conflictRelevantChange
+            ? (currentRecord?.version || 0) + 1
+            : currentRecord.version;
+          record.lastUpdated = conflictRelevantChange
+            ? new Date().toISOString()
+            : currentRecord.lastUpdated;
           this.records.set(rsIndentNo, record);
           changedRecords.push(record);
         }
@@ -708,13 +742,25 @@ export class SheetsService {
    * Enforces stage transition validation and formula safety
    */
   async updateStageAction(indentNo, stageName, stageData, user, expectedVersion) {
-    const record = this.records.get(indentNo);
-    if (!record) {
+    const currentRecord = this.records.get(indentNo);
+    if (!currentRecord) {
       throw new Error(`Record ${indentNo} not found.`);
     }
+    // Work on a copy so a failed Google Sheets write cannot leave the
+    // in-memory API state ahead of the actual spreadsheet.
+    const record = { ...currentRecord };
 
-    // Concurrency conflict check
-    if (expectedVersion !== undefined && record.version !== expectedVersion) {
+    const isSuper =
+      user.role === 'admin' ||
+      user.role === 'super_admin' ||
+      user.role === 'super admin' ||
+      user.role === 'superadmin' ||
+      (user.username && user.username.toLowerCase() === 'admin');
+
+    // Super Admin is the final authority and may intentionally act on the
+    // latest server copy even when a background sync refreshed the version.
+    // Other users retain strict optimistic locking to prevent lost updates.
+    if (!isSuper && expectedVersion !== undefined && currentRecord.version !== expectedVersion) {
       throw new Error(`Concurrency Conflict: Record was modified by another user. Please refresh and review.`);
     }
 
@@ -731,13 +777,6 @@ export class SheetsService {
       cells: {},
     };
 
-    const isSuper =
-      user.role === 'admin' ||
-      user.role === 'super_admin' ||
-      user.role === 'super admin' ||
-      user.role === 'superadmin' ||
-      (user.username && user.username.toLowerCase() === 'admin');
-
     if (stageName === 'APPROVAL') {
       // Management Approval: writes K (Actual), M (Paid), N (Approved Amount)
       // Planned (J) and Delay (L) are protected formulas
@@ -752,15 +791,30 @@ export class SheetsService {
         throw new Error(`A remark is required when the approval decision is ${stageData.paidField}.`);
       }
 
-      writePayload.cells['K'] = timestampStr; // Column K: Actual
-      writePayload.cells['M'] = stageData.paidField || 'Yes'; // Column M: Paid
+      const approvalDecision = stageData.paidField || 'Yes';
+      const completesApproval = approvalDecision !== 'Hold';
+
+      // Hold deliberately keeps Management Approval pending. Rejected closes
+      // Management Approval but must never unlock downstream workflow stages.
+      writePayload.cells['K'] = completesApproval ? timestampStr : '';
+      writePayload.cells['M'] = approvalDecision; // Column M: Paid
       writePayload.cells['N'] = approvedAmt; // Column N: Approved Amount
 
-      record.actualApproval = timestampStr;
-      record.paidField = stageData.paidField || 'Yes';
+      record.actualApproval = completesApproval ? timestampStr : '';
+      record.paidField = approvalDecision;
       record.approvedAmount = approvedAmt;
       if (stageData.remarks?.trim()) {
         record.remarks = stageData.remarks.trim();
+      }
+
+      if (approvalDecision === 'Hold' || approvalDecision === 'Rejected') {
+        // A held/rejected requisition cannot retain or enter downstream stages.
+        Object.assign(writePayload.cells, { P: '', S: '', U: '', W: '' });
+        record.actualPosting = '';
+        record.actualPayment = '';
+        record.paymentAttachment = '';
+        record.paymentProof = '';
+        record.actualAudit = '';
       }
     } else if (stageName === 'POSTING') {
       // Posting: requires approval actual first. Writes P (Actual 2)
@@ -768,8 +822,8 @@ export class SheetsService {
       if (user.role !== 'posting' && !isSuper) {
         throw new Error('Unauthorized: Only Posting In-Charge or Super Admin can confirm posting.');
       }
-      if (!record.actualApproval) {
-        throw new Error('Invalid stage transition: Management approval must be completed before posting.');
+      if (!record.actualApproval || record.paidField !== 'Yes') {
+        throw new Error('Invalid stage transition: Management approval must be accepted before posting.');
       }
 
       writePayload.cells['P'] = timestampStr; // Column P: Actual 2
@@ -827,6 +881,7 @@ export class SheetsService {
     // Persist to Google Sheets if credentials present
     await this.writeToGoogleSheets(writePayload);
 
+    this.records.set(indentNo, record);
     this.broadcastDelta([record]);
     return record;
   }
@@ -844,30 +899,40 @@ export class SheetsService {
 
     if (appsScriptUrl && appsScriptUrl.trim()) {
       try {
-        const res = await fetch(appsScriptUrl.trim(), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            secret: 'req-system-secret-key-prod-2026',
-            tabName: targetTab,
-            row: writePayload.row,
-            cells: writePayload.cells,
-          }),
-        });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 20000);
+        let res;
+        try {
+          res = await fetch(appsScriptUrl.trim(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              secret: 'req-system-secret-key-prod-2026',
+              tabName: targetTab,
+              row: writePayload.row,
+              cells: writePayload.cells,
+            }),
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timeout);
+        }
         const responseText = await res.text();
         let result;
         try {
           result = JSON.parse(responseText);
         } catch {
-          // Some Apps Script deployments return an HTML wrapper/login page
-          // even though the request itself completed. Do not let that
-          // response break the requisition stage action.
-          console.warn(`[AppsScript] Non-JSON response (${res.status}); continuing with backend update.`);
-          return { success: false, warning: `Apps Script returned HTTP ${res.status} without JSON.` };
+          throw new Error(`Apps Script returned an invalid non-JSON response (HTTP ${res.status}).`);
+        }
+        if (!res.ok) {
+          throw new Error(`Apps Script returned HTTP ${res.status}.`);
         }
         if (result.error) {
           console.error(`[AppsScript Live Write Error] Tab ${targetTab} Row ${writePayload.row}:`, result.error);
           throw new Error(`Google Sheets Webhook error: ${result.error}`);
+        }
+        if (result.success !== true) {
+          throw new Error('Apps Script did not confirm that the sheet write succeeded.');
         }
         console.log(`[AppsScript Live Write Succeeded] Tab ${targetTab} Row ${writePayload.row}:`, result);
         return result;

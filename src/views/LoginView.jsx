@@ -4,8 +4,8 @@ import { Lock, User, ArrowRight, Shield, CheckCircle2 } from 'lucide-react';
 import { api } from '../api/client';
 
 export function LoginView({ onLoginSuccess }) {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const demoUsers = [];
@@ -105,7 +105,7 @@ export function LoginView({ onLoginSuccess }) {
           <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-light)' }} />
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <form onSubmit={handleSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
               Username
@@ -127,6 +127,7 @@ export function LoginView({ onLoginSuccess }) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter username"
+                autoComplete="off"
                 required
                 style={{
                   border: 'none',
@@ -161,6 +162,7 @@ export function LoginView({ onLoginSuccess }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
+                autoComplete="new-password"
                 required
                 style={{
                   border: 'none',

@@ -73,17 +73,23 @@ class ApiClient {
     }
     if (!res) throw lastError || new Error('Unable to reach the server.');
 
-    if (res.status === 401) {
-      this.logout();
-      throw new Error('Session expired. Please log in again.');
-    }
-
     const responseText = await res.text();
     let data = {};
     try {
       data = responseText ? JSON.parse(responseText) : {};
     } catch {
-      throw new Error(`Server returned an invalid response (HTTP ${res.status}). Please retry.`);
+      if (res.status === 404 || res.status === 502 || res.status === 503) {
+        throw new Error('Backend server is currently reconnecting. Please wait a moment and try again.');
+      }
+      throw new Error(`Server returned an unexpected response (HTTP ${res.status}). Please retry.`);
+    }
+
+    if (res.status === 401) {
+      if (endpoint === '/auth/login') {
+        throw new Error(data.error || 'Invalid username or password.');
+      }
+      this.logout();
+      throw new Error('Session expired. Please log in again.');
     }
 
     if (!res.ok) {
@@ -145,9 +151,15 @@ class ApiClient {
     });
   }
 
-  // Config & Diagnostics
-  async getConfig() {
-    return this.request('/config');
+  // Config & Diagnostics (cached in memory for 5 minutes)
+  async getConfig(force = false) {
+    if (!force && this._cachedConfig && Date.now() - (this._cachedConfigTime || 0) < 300000) {
+      return this._cachedConfig;
+    }
+    const data = await this.request('/config');
+    this._cachedConfig = data;
+    this._cachedConfigTime = Date.now();
+    return data;
   }
 
   async updateConfig(configData) {

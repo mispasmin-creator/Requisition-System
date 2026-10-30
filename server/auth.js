@@ -154,6 +154,7 @@ export async function authenticate(username, password) {
 
     const finalFirmAccess = isSuper ? 'ALL' : (dynamicUser.firmAccess || 'ALL');
     const finalRole = isSuper ? 'admin' : dynamicUser.role;
+    const requesterName = dynamicUser.fullName || dynamicUser.username;
 
     const token = jwt.sign(
       {
@@ -161,6 +162,7 @@ export async function authenticate(username, password) {
         username: dynamicUser.username,
         displayName: dynamicUser.fullName || dynamicUser.username,
         role: finalRole,
+        requesterName,
         isSuperAdmin: isSuper,
         firmAccess: finalFirmAccess,
         permissions: finalPermissions,
@@ -176,6 +178,7 @@ export async function authenticate(username, password) {
         username: dynamicUser.username,
         displayName: dynamicUser.fullName || dynamicUser.username,
         role: finalRole,
+        requesterName,
         isSuperAdmin: isSuper,
         firmAccess: finalFirmAccess,
         permissions: finalPermissions,
@@ -242,7 +245,7 @@ export function authMiddleware(req, res, next) {
     const decoded = jwt.verify(token, CONFIG.JWT_SECRET);
     req.user = decoded;
     next();
-  } catch (err) {
+  } catch {
     return res.status(401).json({ error: 'Token expired or invalid.' });
   }
 }
@@ -271,6 +274,22 @@ export function filterRequisitionsForUser(requisitions, user) {
   if (user.role === 'admin') {
     return result;
   }
+
+  // Login-page workflow permissions are the source of truth for cross-requester
+  // visibility. A user assigned to a stage must be able to see that stage's
+  // queue even when their legacy role is still "requester". Firm access above
+  // remains enforced. Dashboard/history permissions intentionally do not widen
+  // record scope, so ordinary requesters continue to see only their own rows.
+  const workflowPermissionKeys = ['approval', 'posting', 'payment', 'audit'];
+  const hasWorkflowAccess = workflowPermissionKeys.some((key) => {
+    const level = user.permissions?.[key];
+    return level === 'Full' || level === 'View';
+  });
+
+  if (hasWorkflowAccess) {
+    return result;
+  }
+
   if (user.role === 'requester') {
     return result.filter(
       (r) =>

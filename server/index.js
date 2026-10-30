@@ -84,12 +84,14 @@ function computeRecordStatus(record) {
 
   // Stage 1: Approval
   let approvalStatus = 'PENDING';
-  if (record.actualApproval) approvalStatus = 'COMPLETED';
+  if (record.paidField === 'Rejected') approvalStatus = 'REJECTED';
+  else if (record.paidField === 'Hold') approvalStatus = 'HOLD';
+  else if (record.actualApproval) approvalStatus = 'COMPLETED';
   else if (isOverdue(record.plannedApproval, record.actualApproval)) approvalStatus = 'OVERDUE';
 
   // Stage 2: Posting
   let postingStatus = 'NOT_STARTED';
-  if (!record.actualApproval) postingStatus = 'NOT_STARTED';
+  if (!record.actualApproval || record.paidField !== 'Yes') postingStatus = 'NOT_STARTED';
   else if (record.actualPosting) postingStatus = 'COMPLETED';
   else if (isOverdue(record.plannedPosting, record.actualPosting)) postingStatus = 'OVERDUE';
   else postingStatus = 'PENDING';
@@ -110,7 +112,9 @@ function computeRecordStatus(record) {
 
   // Overall workflow state
   let overall = 'IN_PROGRESS';
-  if (record.actualAudit) overall = 'COMPLETED';
+  if (record.paidField === 'Rejected') overall = 'REJECTED';
+  else if (record.paidField === 'Hold') overall = 'HOLD';
+  else if (record.actualAudit) overall = 'COMPLETED';
   else if (approvalStatus === 'OVERDUE' || postingStatus === 'OVERDUE' || paymentStatus === 'OVERDUE' || auditStatus === 'OVERDUE') {
     overall = 'OVERDUE';
   }
@@ -154,8 +158,8 @@ app.get('/api/requisitions', authMiddleware, async (req, res) => {
   const recordsWithStatus = authorized.map((rec) => {
     const statuses = computeRecordStatus(rec);
     // Update counters
-    if (statuses.approvalStatus === 'PENDING') counters.approval.pending++;
-    else if (statuses.approvalStatus === 'COMPLETED') counters.approval.completed++;
+    if (statuses.approvalStatus === 'PENDING' || statuses.approvalStatus === 'HOLD') counters.approval.pending++;
+    else if (statuses.approvalStatus === 'COMPLETED' || statuses.approvalStatus === 'REJECTED') counters.approval.completed++;
     else if (statuses.approvalStatus === 'OVERDUE') counters.approval.overdue++;
 
     if (statuses.postingStatus === 'PENDING') counters.posting.pending++;
@@ -182,7 +186,16 @@ app.get('/api/requisitions', authMiddleware, async (req, res) => {
 
   if (stage && status) {
     const stageKey = `${stage.toLowerCase()}Status`;
-    filtered = filtered.filter((r) => r[stageKey] === status.toUpperCase());
+    const requestedStatus = status.toUpperCase();
+    filtered = filtered.filter((r) => {
+      if (stage.toLowerCase() === 'approval' && requestedStatus === 'PENDING') {
+        return r[stageKey] === 'PENDING' || r[stageKey] === 'HOLD';
+      }
+      if (stage.toLowerCase() === 'approval' && requestedStatus === 'COMPLETED') {
+        return r[stageKey] === 'COMPLETED' || r[stageKey] === 'REJECTED';
+      }
+      return r[stageKey] === requestedStatus;
+    });
   }
 
   if (search) {
@@ -252,9 +265,12 @@ app.post('/api/requisitions', authMiddleware, async (req, res) => {
     if (!reason || reason.trim().length === 0) {
       return res.status(400).json({ error: 'Reason is required.' });
     }
+    if (!requesterName || !requesterName.trim()) {
+      return res.status(400).json({ error: 'Requester name must be selected.' });
+    }
 
-    // Role check: requester or admin
-    const finalRequesterName = req.user.role === 'requester' ? req.user.requesterName : (requesterName || req.user.displayName);
+    // Every account selects the requester explicitly from the Master dropdown.
+    const finalRequesterName = requesterName.trim();
 
     const newRecord = await sheetsService.submitNewRequisition(
       {

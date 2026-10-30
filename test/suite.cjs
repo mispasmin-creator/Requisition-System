@@ -49,7 +49,8 @@ async function runTestSuite() {
   const { CONFIG } = await import('../server/config.js');
   const { authenticate, filterRequisitionsForUser } = await import('../server/auth.js');
   const { SchemaValidator } = await import('../server/schemaValidator.js');
-  const { SheetsService } = await import('../server/sheetsService.js');
+  const { SheetsService, sheetsService } = await import('../server/sheetsService.js');
+  const { getRequisitionCsvColumns } = await import('../src/utils/csvExport.js');
 
   // -------------------------------------------------------------------------
   // 1. FORMULA PRESERVATION & SAFETY TESTS
@@ -69,6 +70,21 @@ async function runTestSuite() {
         `Formula column ${protCol} found inside write allowlist!`
       );
     }
+  });
+
+  test('CSV exports only the columns visible in each requisition table', () => {
+    assert.deepStrictEqual(
+      getRequisitionCsvColumns({ view: 'dashboard' }).map((column) => column.label),
+      ['RS-Indent No.', 'Date', 'Requester', 'Firm Name', 'Amount (₹)', 'Mode', 'Current Stage Status']
+    );
+    assert.deepStrictEqual(
+      getRequisitionCsvColumns({ view: 'stage', stageType: 'POSTING' }).map((column) => column.label),
+      ['RS-Indent No.', 'Date', 'Requester', 'Firm', 'Amount (₹)', 'Mode', 'Reason', 'Attachment', 'Stage Status']
+    );
+    assert.deepStrictEqual(
+      getRequisitionCsvColumns({ view: 'stage', stageType: 'APPROVAL', filterMode: 'COMPLETED' }).map((column) => column.label),
+      ['RS-Indent No.', 'Date', 'Requester', 'Firm', 'Amount (₹)', 'Approved Amt (₹)', 'Mode', 'Reason', 'Attachment', 'Stage Status']
+    );
   });
 
   await asyncTest('Simulated isolated sheet with 1000+ formula rows correctly allocates row after data', async () => {
@@ -103,6 +119,23 @@ async function runTestSuite() {
     assert.strictEqual(newRec.sheetRowNumber, 21);
     assert.strictEqual(newRec.plannedApproval, '—');
     assert.strictEqual(newRec.delayApproval, '—');
+  });
+
+  await asyncTest('Selected requester name is preserved instead of the logged-in account name', async () => {
+    const service = new SheetsService();
+    const created = await service.submitNewRequisition(
+      {
+        requesterName: 'Vivek Mishra',
+        firmName: 'Pmmpl',
+        amount: 1200,
+        mode: 'UPI',
+        paymentLocation: 'Party Account',
+        reason: 'Explicit requester selection test',
+      },
+      { role: 'requester', requesterName: 'Himani', displayName: 'Himani' }
+    );
+
+    assert.strictEqual(created.requesterName, 'Vivek Mishra');
   });
 
   // -------------------------------------------------------------------------
@@ -158,6 +191,81 @@ async function runTestSuite() {
     assert.strictEqual(audited.remarks, 'Compliance verified');
   });
 
+  await asyncTest('Paid Field Decision: Yes, Hold, and Rejected all persist correctly', async () => {
+    const cases = [
+      { value: 'Yes', remarks: '' },
+      { value: 'Hold', remarks: 'Waiting for management clarification' },
+      { value: 'Rejected', remarks: 'Request does not meet policy' },
+    ];
+
+    for (const decision of cases) {
+      const service = new SheetsService();
+      let capturedWrite = null;
+      service.writeToGoogleSheets = async (payload) => {
+        capturedWrite = payload;
+      };
+      const created = await service.submitNewRequisition(
+        { requesterName: 'Test User', amount: 2332, reason: 'Decision test' },
+        { role: 'requester', requesterName: 'Test User' }
+      );
+      const updated = await service.updateStageAction(
+        created.rsIndentNo,
+        'APPROVAL',
+        { approvedAmount: 2332, paidField: decision.value, remarks: decision.remarks },
+        { role: 'ea' },
+        created.version
+      );
+
+      assert.strictEqual(updated.paidField, decision.value);
+      assert.strictEqual(capturedWrite.cells.M, decision.value);
+      assert.strictEqual(capturedWrite.cells.N, 2332);
+      if (decision.value === 'Hold') {
+        assert.strictEqual(capturedWrite.cells.K, '');
+        assert.strictEqual(updated.actualApproval, '');
+      } else {
+        assert.ok(capturedWrite.cells.K, `${decision.value} must record an approval action timestamp`);
+        assert.ok(updated.actualApproval);
+      }
+
+      if (decision.value !== 'Yes') {
+        assert.deepStrictEqual(
+          { P: capturedWrite.cells.P, S: capturedWrite.cells.S, U: capturedWrite.cells.U, W: capturedWrite.cells.W },
+          { P: '', S: '', U: '', W: '' }
+        );
+        await assert.rejects(
+          service.updateStageAction(
+            created.rsIndentNo,
+            'POSTING',
+            {},
+            { role: 'posting' },
+            updated.version
+          ),
+          /approval must be accepted before posting/i
+        );
+      }
+    }
+  });
+
+  await asyncTest('Paid Field Decision: Hold and Rejected require a remark', async () => {
+    for (const decision of ['Hold', 'Rejected']) {
+      const service = new SheetsService();
+      const created = await service.submitNewRequisition(
+        { requesterName: 'Test User', amount: 2332, reason: 'Remark validation test' },
+        { role: 'requester', requesterName: 'Test User' }
+      );
+      await assert.rejects(
+        service.updateStageAction(
+          created.rsIndentNo,
+          'APPROVAL',
+          { approvedAmount: 2332, paidField: decision, remarks: '' },
+          { role: 'ea' },
+          created.version
+        ),
+        /remark is required/i
+      );
+    }
+  });
+
   await asyncTest('Stage prerequisites: Posting before approval or payment before posting is rejected', async () => {
     const service = new SheetsService();
     const created = await service.submitNewRequisition(
@@ -172,7 +280,7 @@ async function runTestSuite() {
       await service.updateStageAction(id, 'POSTING', {}, { role: 'posting' }, 1);
     } catch (e) {
       errCaught = true;
-      assert.ok(e.message.includes('Management approval must be completed before posting'));
+      assert.ok(e.message.includes('Management approval must be accepted before posting'));
     }
     assert.ok(errCaught, 'Posting before approval should have thrown an error');
 
@@ -259,6 +367,81 @@ async function runTestSuite() {
     assert.ok(conflictCaught, 'Stale edit should trigger Concurrency Conflict');
   });
 
+  await asyncTest('Super Admin can complete a stage action using a stale client version', async () => {
+    const service = new SheetsService();
+    const created = await service.submitNewRequisition(
+      { requesterName: 'Vivek Mishra', amount: 23456, reason: 'Admin override test' },
+      { role: 'requester', requesterName: 'Vivek Mishra' }
+    );
+    created.version = 7;
+
+    const updated = await service.updateStageAction(
+      created.rsIndentNo,
+      'APPROVAL',
+      { approvedAmount: 23456, paidField: 'Hold', remarks: 'Admin hold verification' },
+      { role: 'admin', username: 'admin' },
+      1
+    );
+
+    assert.strictEqual(updated.paidField, 'Hold');
+    assert.strictEqual(updated.version, 8);
+  });
+
+  await asyncTest('Failed sheet write does not leave an unpersisted stage update in memory', async () => {
+    const service = new SheetsService();
+    const created = await service.submitNewRequisition(
+      { requesterName: 'Vivek Mishra', amount: 4000, reason: 'Write rollback test' },
+      { role: 'requester', requesterName: 'Vivek Mishra' }
+    );
+    service.writeToGoogleSheets = async () => {
+      throw new Error('Simulated sheet failure');
+    };
+
+    await assert.rejects(
+      service.updateStageAction(
+        created.rsIndentNo,
+        'APPROVAL',
+        { approvedAmount: 4000, paidField: 'Yes' },
+        { role: 'admin', username: 'admin' },
+        0
+      ),
+      /Simulated sheet failure/
+    );
+
+    const unchanged = service.getRecord(created.rsIndentNo);
+    assert.strictEqual(unchanged.actualApproval, '');
+    assert.strictEqual(unchanged.paidField, '');
+    assert.strictEqual(unchanged.version, created.version);
+  });
+
+  await asyncTest('Formula-only sheet recalculation does not create a false concurrency conflict', async () => {
+    const service = new SheetsService();
+    service.masterDropdowns.lastFetched = new Date().toISOString();
+    service.lastLoginUsersSync = new Date().toISOString();
+
+    const headers = Object.values(CONFIG.CANONICAL_COLUMNS).map((column) => ({ v: column.name }));
+    const values = [
+      '10/30/2026 10:00:00', 'RS - 0002', 'Suryakant Verma', 'Pmmpl', 2332, 'UPI',
+      'Party Account', 'Test request', '', '10/30/2026 11:00:00', '', '', '', 0,
+      '', '', '', '', '', '', '', '', '', '',
+    ];
+    const table = { rows: [{ c: headers }, { c: values.map((value) => ({ v: value })) }] };
+    service.fetchLiveSheet = async () => table;
+
+    await service.sync();
+    const initialRecord = service.getRecord('RS - 0002');
+    const initialVersion = initialRecord.version;
+    assert.strictEqual(initialRecord.sheetRowNumber, CONFIG.HEADER_ROW + 1);
+    table.rows[1].c[9] = { v: '10/30/2026 12:00:00' };
+    table.rows[1].c[11] = { v: '1 hour' };
+    await service.sync();
+
+    const refreshed = service.getRecord('RS - 0002');
+    assert.strictEqual(refreshed.version, initialVersion);
+    assert.strictEqual(refreshed.plannedApproval, '10/30/2026 12:00:00');
+    assert.strictEqual(refreshed.delayApproval, '1 hour');
+  });
+
   // -------------------------------------------------------------------------
   // 4. AUTHENTICATION & USER DATA ISOLATION TESTS
   // -------------------------------------------------------------------------
@@ -275,6 +458,39 @@ async function runTestSuite() {
 
     const invalid = await authenticate('vivek', 'wrongpass');
     assert.strictEqual(invalid, null);
+  });
+
+  await asyncTest('Dynamic Login-page requester profile carries the name used for own-record filtering', async () => {
+    const originalFetchLoginUsers = sheetsService.fetchLoginUsers;
+    sheetsService.fetchLoginUsers = async () => [{
+      id: 'sheet_himani',
+      username: 'himani',
+      fullName: 'Himani',
+      password: 'himani-test-password',
+      role: 'requester',
+      status: 'Active',
+      firmAccess: 'ALL',
+      permissions: {
+        dashboard: 'Full',
+        approval: 'No',
+        posting: 'No',
+        payment: 'No',
+        audit: 'No',
+        history: 'Full',
+      },
+    }];
+
+    try {
+      const authHimani = await authenticate('himani', 'himani-test-password');
+      assert.strictEqual(authHimani.user.requesterName, 'Himani');
+      const visible = filterRequisitionsForUser([
+        { rsIndentNo: 'RS-001', requesterName: 'Vivek Mishra' },
+        { rsIndentNo: 'RS-002', requesterName: 'Himani' },
+      ], authHimani.user);
+      assert.deepStrictEqual(visible.map((record) => record.rsIndentNo), ['RS-002']);
+    } finally {
+      sheetsService.fetchLoginUsers = originalFetchLoginUsers;
+    }
   });
 
   test('User isolation: Requester Vivek Mishra cannot see Requester Hareram Maurya records', () => {
@@ -298,6 +514,70 @@ async function runTestSuite() {
 
     const adminView = filterRequisitionsForUser(dummyRecords, adminUser);
     assert.strictEqual(adminView.length, 3);
+  });
+
+  test('Login-page stage permission lets a requester see the workflow queue across requesters', () => {
+    const dummyRecords = [
+      { rsIndentNo: 'RS-001', requesterName: 'Vivek Mishra', firmName: 'Pmmpl' },
+      { rsIndentNo: 'RS-002', requesterName: 'Hareram Maurya', firmName: 'Pmmpl' },
+      { rsIndentNo: 'RS-003', requesterName: 'Himani', firmName: 'Pmmpl' },
+    ];
+    const himani = {
+      role: 'requester',
+      requesterName: 'Himani',
+      firmAccess: 'ALL',
+      permissions: {
+        dashboard: 'Full',
+        approval: 'Full',
+        posting: 'No',
+        payment: 'No',
+        audit: 'No',
+        history: 'Full',
+      },
+    };
+
+    const visible = filterRequisitionsForUser(dummyRecords, himani);
+    assert.strictEqual(visible.length, 3);
+  });
+
+  test('View-level stage access widens queue visibility but still enforces firm access', () => {
+    const dummyRecords = [
+      { rsIndentNo: 'RS-001', requesterName: 'Vivek Mishra', firmName: 'Pmmpl' },
+      { rsIndentNo: 'RS-002', requesterName: 'Hareram Maurya', firmName: 'Rkl' },
+      { rsIndentNo: 'RS-003', requesterName: 'Himani', firmName: 'Pmmpl' },
+    ];
+    const himani = {
+      role: 'requester',
+      requesterName: 'Himani',
+      firmAccess: 'Pmmpl',
+      permissions: { approval: 'View' },
+    };
+
+    const visible = filterRequisitionsForUser(dummyRecords, himani);
+    assert.deepStrictEqual(visible.map((record) => record.rsIndentNo), ['RS-001', 'RS-003']);
+  });
+
+  test('Dashboard and All Records permissions alone do not widen requester visibility', () => {
+    const dummyRecords = [
+      { rsIndentNo: 'RS-001', requesterName: 'Vivek Mishra', firmName: 'Pmmpl' },
+      { rsIndentNo: 'RS-002', requesterName: 'Himani', firmName: 'Pmmpl' },
+    ];
+    const himani = {
+      role: 'requester',
+      requesterName: 'Himani',
+      firmAccess: 'ALL',
+      permissions: {
+        dashboard: 'Full',
+        approval: 'No',
+        posting: 'No',
+        payment: 'No',
+        audit: 'No',
+        history: 'Full',
+      },
+    };
+
+    const visible = filterRequisitionsForUser(dummyRecords, himani);
+    assert.deepStrictEqual(visible.map((record) => record.rsIndentNo), ['RS-002']);
   });
 
   // -------------------------------------------------------------------------

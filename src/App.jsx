@@ -13,9 +13,10 @@ import { exportRequisitionsCsv } from './utils/csvExport';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 6000,
-      refetchOnWindowFocus: true,
-      retry: 2,
+      staleTime: 60000, // Keep data fresh in memory for 60 seconds
+      refetchOnWindowFocus: false, // Prevent redundant API spam when switching browser windows
+      refetchOnReconnect: false,
+      retry: 1,
     },
   },
 });
@@ -95,7 +96,14 @@ function MainApp() {
         setActiveFilter(null);
       }}
       onOpenNewRequisition={() => setIsNewModalOpen(true)}
-      onExportCsv={() => exportRequisitionsCsv(requisitions, `Requisitions_${currentTab}`)}
+      onExportCsv={currentTab === 'admin' ? undefined : () => exportRequisitionsCsv(
+        requisitions,
+        `Requisitions_${currentTab}`,
+        '',
+        currentTab === 'dashboard'
+          ? { view: 'dashboard' }
+          : { view: 'stage', stageType: currentTab === 'history' ? 'ALL' : currentTab.toUpperCase() }
+      )}
       counters={counters}
     >
       {/* Tab Content */}
@@ -177,7 +185,6 @@ function MainApp() {
         onSuccess={() => {
           qc.invalidateQueries({ queryKey: ['requisitions'] });
         }}
-        user={user}
       />
 
       {/* Stage Action Modal */}

@@ -302,7 +302,7 @@ export function Shell({
                   <div style={{ overflow: 'hidden' }}>
                     <div
                       style={{
-                        fontSize: '1.02rem',
+                        fontSize: '0.96rem',
                         fontWeight: 800,
                         letterSpacing: '-0.02em',
                         color: 'var(--text-primary)',
@@ -310,7 +310,7 @@ export function Shell({
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      REQUISITION
+                      REQUISITION SYSTEM
                     </div>
                   </div>
                 </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, CheckCircle2, AlertTriangle, MinusCircle } from 'lucide-react';
+import { Clock, CheckCircle2, AlertTriangle, MinusCircle, PauseCircle, XCircle } from 'lucide-react';
 
 export function StageBadge({ status, label }) {
   const normStatus = (status || '').toUpperCase();
@@ -28,6 +28,18 @@ export function StageBadge({ status, label }) {
     border = 'var(--status-overdue-border)';
     Icon = AlertTriangle;
     text = label || 'Overdue';
+  } else if (normStatus === 'HOLD') {
+    bg = '#fff7ed';
+    color = '#9a3412';
+    border = '#fdba74';
+    Icon = PauseCircle;
+    text = label || 'On Hold';
+  } else if (normStatus === 'REJECTED') {
+    bg = '#fef2f2';
+    color = '#b91c1c';
+    border = '#fecaca';
+    Icon = XCircle;
+    text = label || 'Rejected';
   }
 
   return (

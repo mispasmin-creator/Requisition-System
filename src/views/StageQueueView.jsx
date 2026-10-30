@@ -40,11 +40,11 @@ export function StageQueueView({
     }
 
     if (stageType === 'APPROVAL') {
-      if (filterMode === 'PENDING') return !r.actualApproval;
-      if (filterMode === 'COMPLETED') return !!r.actualApproval;
+      if (filterMode === 'PENDING') return r.paidField === 'Hold' || !r.actualApproval;
+      if (filterMode === 'COMPLETED') return r.paidField !== 'Hold' && !!r.actualApproval;
     } else if (stageType === 'POSTING') {
-      // Posting requires approval
-      if (!r.actualApproval) return false;
+      // Only an accepted approval can enter Posting. Hold/Rejected stop here.
+      if (!r.actualApproval || r.paidField !== 'Yes') return false;
       if (filterMode === 'PENDING') return !r.actualPosting;
       if (filterMode === 'COMPLETED') return !!r.actualPosting;
     } else if (stageType === 'PAYMENT') {
@@ -77,7 +77,11 @@ export function StageQueueView({
 
   const handleExportCsv = () => {
     const suffix = stageType !== 'ALL' ? filterMode : 'All';
-    exportRequisitionsCsv(filtered, title || stageType, suffix);
+    exportRequisitionsCsv(filtered, title || stageType, suffix, {
+      view: 'stage',
+      stageType,
+      filterMode,
+    });
   };
 
   return (
@@ -255,8 +259,8 @@ export function StageQueueView({
               ) : (
                 paginated.map((r) => {
                   let isCurrentPending = false;
-                  if (stageType === 'APPROVAL') isCurrentPending = !r.actualApproval;
-                  if (stageType === 'POSTING') isCurrentPending = r.actualApproval && !r.actualPosting;
+                  if (stageType === 'APPROVAL') isCurrentPending = r.paidField === 'Hold' || !r.actualApproval;
+                  if (stageType === 'POSTING') isCurrentPending = r.actualApproval && r.paidField === 'Yes' && !r.actualPosting;
                   if (stageType === 'PAYMENT') isCurrentPending = r.actualPosting && !r.actualPayment;
                   if (stageType === 'AUDIT') isCurrentPending = r.actualPayment && !r.actualAudit;
 

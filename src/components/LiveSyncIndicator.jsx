@@ -47,7 +47,7 @@ export function LiveSyncIndicator({ onSyncTriggered }) {
     return () => {
       if (eventSource) eventSource.close();
     };
-  }, [onSyncTriggered]);
+  }, []);
 
   // Update timeAgo string every 3 seconds
   useEffect(() => {

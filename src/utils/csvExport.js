@@ -94,6 +94,67 @@ export const REQUISITION_CSV_COLUMNS = [
   { key: 'remarks', label: 'Remarks / Notes' },
 ];
 
+const DASHBOARD_CSV_COLUMNS = [
+  { key: 'rsIndentNo', label: 'RS-Indent No.' },
+  { key: 'timestamp', label: 'Date' },
+  { key: 'requesterName', label: 'Requester' },
+  { key: 'firmName', label: 'Firm Name' },
+  { key: 'amount', label: 'Amount (₹)' },
+  { key: 'mode', label: 'Mode' },
+  {
+    key: 'currentStageStatus',
+    label: 'Current Stage Status',
+    getter: (r) => {
+      if (r.paidField === 'Rejected') return 'Rejected';
+      if (!r.actualApproval) return 'Pending Approval';
+      if (!r.actualPosting) return 'Pending Posting';
+      if (!r.actualPayment) return 'Pending Payment';
+      if (!r.actualAudit) return 'Pending Audit';
+      return 'Completed';
+    },
+  },
+];
+
+const getStageStatus = (record, stageType) => {
+  if (stageType === 'APPROVAL') {
+    if (record.paidField === 'Rejected') return 'Rejected';
+    if (record.paidField === 'Hold') return 'On Hold';
+    return record.actualApproval ? 'Completed' : 'Pending';
+  }
+  if (stageType === 'POSTING') return record.actualPosting ? 'Completed' : 'Pending';
+  if (stageType === 'PAYMENT') return record.actualPayment ? 'Completed' : 'Pending';
+  if (stageType === 'AUDIT') return record.actualAudit ? 'Completed' : 'Pending';
+  if (record.paidField === 'Rejected') return 'Rejected';
+  return record.actualAudit ? 'Completed' : 'In Progress';
+};
+
+const STAGE_SCREEN_CSV_COLUMNS = [
+  { key: 'rsIndentNo', label: 'RS-Indent No.' },
+  { key: 'timestamp', label: 'Date' },
+  { key: 'requesterName', label: 'Requester' },
+  { key: 'firmName', label: 'Firm' },
+  { key: 'amount', label: 'Amount (₹)' },
+  { key: 'mode', label: 'Mode' },
+  { key: 'reason', label: 'Reason' },
+  { key: 'attachments', label: 'Attachment' },
+];
+
+export function getRequisitionCsvColumns(options = {}) {
+  const { view = 'stage', stageType = 'ALL', filterMode = 'ALL' } = options;
+  if (view === 'dashboard') return DASHBOARD_CSV_COLUMNS;
+
+  const columns = [...STAGE_SCREEN_CSV_COLUMNS];
+  if (stageType === 'APPROVAL' && filterMode === 'COMPLETED') {
+    columns.splice(5, 0, { key: 'approvedAmount', label: 'Approved Amt (₹)' });
+  }
+  columns.push({
+    key: 'stageStatus',
+    label: 'Stage Status',
+    getter: (record) => getStageStatus(record, stageType),
+  });
+  return columns;
+}
+
 /**
  * Standard User Columns Configuration for CSV Export
  */
@@ -110,12 +171,12 @@ export const USER_CSV_COLUMNS = [
 /**
  * Export Requisitions to CSV with customizable filename
  */
-export function exportRequisitionsCsv(requisitions, stageTitle = 'Requisitions', filterSuffix = '') {
+export function exportRequisitionsCsv(requisitions, stageTitle = 'Requisitions', filterSuffix = '', options = {}) {
   const dateStr = new Date().toISOString().slice(0, 10);
   const cleanTitle = (stageTitle || 'Requisitions').replace(/[^a-zA-Z0-9_-]/g, '_');
   const cleanSuffix = filterSuffix ? `_${filterSuffix}` : '';
   const filename = `${cleanTitle}${cleanSuffix}_${dateStr}.csv`;
-  return downloadCsv(filename, REQUISITION_CSV_COLUMNS, requisitions);
+  return downloadCsv(filename, getRequisitionCsvColumns(options), requisitions);
 }
 
 /**

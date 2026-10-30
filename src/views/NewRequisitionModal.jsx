@@ -6,7 +6,7 @@ import { DriveFileUpload } from '../components/DriveFileUpload';
 import { api } from '../api/client';
 import { PlusCircle, Paperclip, AlertCircle } from 'lucide-react';
 
-export function NewRequisitionModal({ isOpen, onClose, onSuccess, user }) {
+export function NewRequisitionModal({ isOpen, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
     requesterName: '',
     firmName: '',
@@ -36,10 +36,11 @@ export function NewRequisitionModal({ isOpen, onClose, onSuccess, user }) {
       api.getMasterDropdowns().then((data) => {
         if (data) {
           setDropdowns(data);
-          // Set default requester if current user is requester
           setFormData((prev) => ({
             ...prev,
-            requesterName: user?.requesterName || prev.requesterName || (data.requesters?.[0] || ''),
+            // Requester must always be chosen explicitly from the Master list;
+            // never infer it from the account currently logged in.
+            requesterName: '',
             firmName: prev.firmName || (data.firmNames?.[0] || ''),
             mode: prev.mode || (data.modes?.[0] || ''),
             paymentLocation: prev.paymentLocation || (data.paymentLocations?.[0] || ''),
@@ -49,7 +50,7 @@ export function NewRequisitionModal({ isOpen, onClose, onSuccess, user }) {
         console.warn('Master fetch error:', err);
       });
     }
-  }, [isOpen, user]);
+  }, [isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -116,7 +117,6 @@ export function NewRequisitionModal({ isOpen, onClose, onSuccess, user }) {
           value={formData.requesterName}
           onChange={(val) => setFormData({ ...formData, requesterName: val })}
           placeholder="Select Requester..."
-          disabled={user?.role === 'requester'} // If logged in as requester, locked to their verified identity
         />
 
         {/* Firm Name */}

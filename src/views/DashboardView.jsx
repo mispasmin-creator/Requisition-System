@@ -70,7 +70,7 @@ export function DashboardView({
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
             type="button"
-            onClick={() => exportRequisitionsCsv(requisitions, 'Dashboard_All_Requisitions')}
+            onClick={() => exportRequisitionsCsv(requisitions, 'Dashboard_All_Requisitions', '', { view: 'dashboard' })}
             title={`Export all ${requisitions.length} requisitions to CSV`}
             style={{
               display: 'inline-flex',
@@ -195,7 +195,7 @@ export function DashboardView({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               type="button"
-              onClick={() => exportRequisitionsCsv(recentRequisitions, 'Recent_Requisitions')}
+              onClick={() => exportRequisitionsCsv(recentRequisitions, 'Recent_Requisitions', '', { view: 'dashboard' })}
               title="Export recent activity rows to CSV"
               style={{
                 display: 'inline-flex',
