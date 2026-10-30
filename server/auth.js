@@ -119,6 +119,7 @@ function authenticateSeedUser(trimmedUser, trimmedPass) {
     posting: user.role === 'admin' || user.role === 'posting' ? 'Full' : 'No',
     payment: user.role === 'admin' || user.role === 'payment' ? 'Full' : 'No',
     audit: user.role === 'admin' || user.role === 'auditor' ? 'Full' : 'No',
+    tally: user.role === 'admin' || user.role === 'tally' || user.role === 'auditor' ? 'Full' : 'No',
     history: 'Full',
     admin: user.role === 'admin' ? 'Full' : 'No',
   };
@@ -190,6 +191,7 @@ export async function authenticate(username, password) {
           posting: 'Full',
           payment: 'Full',
           audit: 'Full',
+          tally: 'Full',
           history: 'Full',
           admin: 'Full',
         }
@@ -279,7 +281,7 @@ export function filterRequisitionsForUser(requisitions, user) {
   // queue even when their legacy role is still "requester". Firm access above
   // remains enforced. Dashboard/history permissions intentionally do not widen
   // record scope, so ordinary requesters continue to see only their own rows.
-  const workflowPermissionKeys = ['approval', 'posting', 'payment', 'audit'];
+  const workflowPermissionKeys = ['approval', 'posting', 'payment', 'audit', 'tally'];
   const hasWorkflowAccess = workflowPermissionKeys.some((key) => {
     const level = user.permissions?.[key];
     return level === 'Full' || level === 'View';
@@ -307,6 +309,9 @@ export function filterRequisitionsForUser(requisitions, user) {
   }
   if (user.role === 'auditor') {
     return result.filter((r) => r.actualPayment || r.actualAudit);
+  }
+  if (user.role === 'tally') {
+    return result.filter((r) => r.actualAudit || r.actualTally);
   }
   return result;
 }

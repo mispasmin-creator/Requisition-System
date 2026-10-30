@@ -170,6 +170,13 @@ export function DashboardView({
           counters={counters?.audit}
           onNavigate={() => onSelectTab?.('audit')}
         />
+
+        <StatCard
+          stageName="Tally Entry"
+          stageKey="tally"
+          counters={counters?.tally}
+          onNavigate={() => onSelectTab?.('tally')}
+        />
       </div>
 
       {/* 3. Recent Activity Preview (Directs to full page) */}
@@ -286,13 +293,15 @@ export function DashboardView({
                           !r.actualApproval ? 'PENDING' :
                             !r.actualPosting ? 'PENDING' :
                               !r.actualPayment ? 'PENDING' :
-                                !r.actualAudit ? 'PENDING' : 'COMPLETED'
+                                !r.actualAudit ? 'PENDING' :
+                                  !r.actualTally ? 'PENDING' : 'COMPLETED'
                         }
                         label={
                           !r.actualApproval ? '1. Pending Approval' :
                             !r.actualPosting ? '2. Pending Posting' :
                               !r.actualPayment ? '3. Pending Payment' :
-                                !r.actualAudit ? '4. Pending Audit' : 'Completed'
+                                !r.actualAudit ? '4. Pending Audit' :
+                                  !r.actualTally ? '5. Pending Tally' : 'Completed'
                         }
                       />
                     </td>

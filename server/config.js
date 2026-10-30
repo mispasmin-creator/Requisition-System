@@ -34,6 +34,7 @@ export const CONFIG = {
     K: 'Audit Payments',
     L: 'All Records',
     M: 'Administration',
+    N: 'Tally Entry',
   },
 
   // Canonical column schema mapping matching live sheet Row 6
@@ -62,13 +63,17 @@ export const CONFIG = {
     V: { name: 'Planned 4', formulaProtected: true, stage: 'Audit Payments' },
     W: { name: 'Actual 4', formulaProtected: false, stage: 'Audit Payments' },
     X: { name: 'Delay 4', formulaProtected: true, stage: 'Audit Payments' },
+    Y: { name: 'Remark', formulaProtected: false },
+    Z: { name: 'Planned 5', formulaProtected: true, stage: 'Tally Entry' },
+    AA: { name: 'Actual 5', formulaProtected: false, stage: 'Tally Entry' },
+    AB: { name: 'Delay 5', formulaProtected: true, stage: 'Tally Entry' },
   },
 
   // Planned and Delay columns that MUST BE KEPT SAFE (strictly protected formula columns)
-  PROTECTED_FORMULA_COLUMNS: ['J', 'L', 'O', 'Q', 'R', 'T', 'V', 'X'],
+  PROTECTED_FORMULA_COLUMNS: ['J', 'L', 'O', 'Q', 'R', 'T', 'V', 'X', 'Z', 'AB'],
 
   // Backend write allowlist - strictly verified before any mutation
-  WRITE_ALLOWLIST_COLUMNS: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'M', 'N', 'P', 'S', 'U', 'W'],
+  WRITE_ALLOWLIST_COLUMNS: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'M', 'N', 'P', 'S', 'U', 'W', 'Y', 'AA'],
 
   // Column D is Description / Firm Name
   FIRM_NAME_DESTINATION_COLUMN: 'D',
@@ -79,6 +84,7 @@ export const CONFIG = {
     POSTING: 'Priyank',
     PAYMENT: 'Rahul',
     AUDIT: process.env.AUDITOR_NAME || 'Auditor',
+    TALLY: 'Tally Accountant',
   },
 
   // Sync intervals

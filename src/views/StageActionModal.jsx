@@ -121,6 +121,8 @@ export function StageActionModal({ isOpen, onClose, requisition, stageType, onSu
         return `Record Payment Completion — ${requisition.rsIndentNo}`;
       case 'AUDIT':
         return `Audit Verification — ${requisition.rsIndentNo}`;
+      case 'TALLY':
+        return `Tally Entry — ${requisition.rsIndentNo}`;
       default:
         return 'Stage Action';
     }
@@ -429,6 +431,35 @@ export function StageActionModal({ isOpen, onClose, requisition, stageType, onSu
           </>
         )}
 
+        {/* ================= STAGE 5: TALLY ENTRY ================= */}
+        {stageType === 'TALLY' && (
+          <>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                Remark (Optional)
+              </label>
+              <textarea
+                rows={3}
+                value={formData.remarks}
+                onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
+                placeholder="Enter Tally voucher number or remark..."
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-light)',
+                  backgroundColor: '#ffffff',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                }}
+              />
+            </div>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
+              Audit has been completed. Enter any optional remark and click Done to complete Tally Entry.
+            </p>
+          </>
+        )}
+
         {/* Submit Actions */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
           <button
@@ -468,7 +499,13 @@ export function StageActionModal({ isOpen, onClose, requisition, stageType, onSu
             }}
           >
             <CheckCircle2 size={16} />
-            <span>{loading ? 'Confirming Stage Action...' : 'Confirm Stage Action'}</span>
+            <span>
+              {loading
+                ? 'Processing...'
+                : stageType === 'TALLY'
+                ? 'Done'
+                : 'Confirm Stage Action'}
+            </span>
           </button>
         </div>
       </form>

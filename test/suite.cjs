@@ -57,8 +57,8 @@ async function runTestSuite() {
   // -------------------------------------------------------------------------
   console.log(cyan('\n--- 1. Formula Preservation & Row Allocation Tests ---'));
 
-  test('Protected formula columns list contains exactly J, L, O, Q, R, T, V, X', () => {
-    const expected = ['J', 'L', 'O', 'Q', 'R', 'T', 'V', 'X'];
+  test('Protected formula columns list contains exactly J, L, O, Q, R, T, V, X, Z, AB', () => {
+    const expected = ['J', 'L', 'O', 'Q', 'R', 'T', 'V', 'X', 'Z', 'AB'];
     assert.deepStrictEqual(CONFIG.PROTECTED_FORMULA_COLUMNS.sort(), expected.sort());
   });
 
@@ -189,6 +189,12 @@ async function runTestSuite() {
     const audited = await service.updateStageAction(id, 'AUDIT', { remarks: 'Compliance verified' }, auditorUser, paid.version);
     assert.ok(audited.actualAudit, 'Audit timestamp should be set');
     assert.strictEqual(audited.remarks, 'Compliance verified');
+
+    // 6. Tally Entry
+    const tallyUser = { role: 'tally', displayName: 'Tally Accountant' };
+    const tallied = await service.updateStageAction(id, 'TALLY', { remarks: 'Voucher 1234' }, tallyUser, audited.version);
+    assert.ok(tallied.actualTally, 'Tally timestamp should be set');
+    assert.strictEqual(tallied.remarks, 'Voucher 1234');
   });
 
   await asyncTest('Paid Field Decision: Yes, Hold, and Rejected all persist correctly', async () => {
@@ -423,7 +429,7 @@ async function runTestSuite() {
     const values = [
       '10/30/2026 10:00:00', 'RS - 0002', 'Suryakant Verma', 'Pmmpl', 2332, 'UPI',
       'Party Account', 'Test request', '', '10/30/2026 11:00:00', '', '', '', 0,
-      '', '', '', '', '', '', '', '', '', '',
+      '', '', '', '', '', '', '', '', '', '', '', '', '', '',
     ];
     const table = { rows: [{ c: headers }, { c: values.map((value) => ({ v: value })) }] };
     service.fetchLiveSheet = async () => table;

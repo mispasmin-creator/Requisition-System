@@ -110,12 +110,19 @@ function computeRecordStatus(record) {
   else if (isOverdue(record.plannedAudit, record.actualAudit)) auditStatus = 'OVERDUE';
   else auditStatus = 'PENDING';
 
+  // Stage 5: Tally Entry
+  let tallyStatus = 'NOT_STARTED';
+  if (!record.actualAudit) tallyStatus = 'NOT_STARTED';
+  else if (record.actualTally) tallyStatus = 'COMPLETED';
+  else if (isOverdue(record.plannedTally, record.actualTally)) tallyStatus = 'OVERDUE';
+  else tallyStatus = 'PENDING';
+
   // Overall workflow state
   let overall = 'IN_PROGRESS';
   if (record.paidField === 'Rejected') overall = 'REJECTED';
   else if (record.paidField === 'Hold') overall = 'HOLD';
-  else if (record.actualAudit) overall = 'COMPLETED';
-  else if (approvalStatus === 'OVERDUE' || postingStatus === 'OVERDUE' || paymentStatus === 'OVERDUE' || auditStatus === 'OVERDUE') {
+  else if (record.actualTally) overall = 'COMPLETED';
+  else if (approvalStatus === 'OVERDUE' || postingStatus === 'OVERDUE' || paymentStatus === 'OVERDUE' || auditStatus === 'OVERDUE' || tallyStatus === 'OVERDUE') {
     overall = 'OVERDUE';
   }
 
@@ -124,6 +131,7 @@ function computeRecordStatus(record) {
     postingStatus,
     paymentStatus,
     auditStatus,
+    tallyStatus,
     overall,
   };
 }
@@ -153,6 +161,7 @@ app.get('/api/requisitions', authMiddleware, async (req, res) => {
     posting: { pending: 0, completed: 0, overdue: 0, notStarted: 0 },
     payment: { pending: 0, completed: 0, overdue: 0, notStarted: 0 },
     audit: { pending: 0, completed: 0, overdue: 0, notStarted: 0 },
+    tally: { pending: 0, completed: 0, overdue: 0, notStarted: 0 },
   };
 
   const recordsWithStatus = authorized.map((rec) => {
@@ -176,6 +185,11 @@ app.get('/api/requisitions', authMiddleware, async (req, res) => {
     else if (statuses.auditStatus === 'COMPLETED') counters.audit.completed++;
     else if (statuses.auditStatus === 'OVERDUE') counters.audit.overdue++;
     else counters.audit.notStarted++;
+
+    if (statuses.tallyStatus === 'PENDING') counters.tally.pending++;
+    else if (statuses.tallyStatus === 'COMPLETED') counters.tally.completed++;
+    else if (statuses.tallyStatus === 'OVERDUE') counters.tally.overdue++;
+    else counters.tally.notStarted++;
 
     return { ...rec, ...statuses };
   });

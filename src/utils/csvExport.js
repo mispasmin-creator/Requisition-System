@@ -91,6 +91,10 @@ export const REQUISITION_CSV_COLUMNS = [
   { key: 'plannedAudit', label: 'Planned Audit' },
   { key: 'actualAudit', label: 'Actual Audit' },
   { key: 'delayAudit', label: 'Audit Delay' },
+  // Tally
+  { key: 'plannedTally', label: 'Planned Tally' },
+  { key: 'actualTally', label: 'Actual Tally' },
+  { key: 'delayTally', label: 'Tally Delay' },
   { key: 'remarks', label: 'Remarks / Notes' },
 ];
 
@@ -110,6 +114,7 @@ const DASHBOARD_CSV_COLUMNS = [
       if (!r.actualPosting) return 'Pending Posting';
       if (!r.actualPayment) return 'Pending Payment';
       if (!r.actualAudit) return 'Pending Audit';
+      if (!r.actualTally) return 'Pending Tally';
       return 'Completed';
     },
   },
@@ -124,8 +129,9 @@ const getStageStatus = (record, stageType) => {
   if (stageType === 'POSTING') return record.actualPosting ? 'Completed' : 'Pending';
   if (stageType === 'PAYMENT') return record.actualPayment ? 'Completed' : 'Pending';
   if (stageType === 'AUDIT') return record.actualAudit ? 'Completed' : 'Pending';
+  if (stageType === 'TALLY') return record.actualTally ? 'Completed' : 'Pending';
   if (record.paidField === 'Rejected') return 'Rejected';
-  return record.actualAudit ? 'Completed' : 'In Progress';
+  return record.actualTally ? 'Completed' : 'In Progress';
 };
 
 const STAGE_SCREEN_CSV_COLUMNS = [

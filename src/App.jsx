@@ -167,6 +167,17 @@ function MainApp() {
         />
       )}
 
+      {currentTab === 'tally' && (
+        <StageQueueView
+          stageType="TALLY"
+          title="Tally Entry Queue"
+          description="Post-audit Tally accounting entries"
+          requisitions={requisitions}
+          onOpenStageAction={handleOpenStageAction}
+          user={user}
+        />
+      )}
+
       {currentTab === 'history' && (
         <StageQueueView
           stageType="ALL"

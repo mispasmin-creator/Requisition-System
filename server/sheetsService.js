@@ -21,6 +21,9 @@ const CONCURRENCY_FIELDS = [
   'actualPayment',
   'paymentAttachment',
   'actualAudit',
+  'actualTally',
+  'remarks',
+  'tallyRemark',
 ];
 
 /**
@@ -549,7 +552,13 @@ export class SheetsService {
           plannedAudit: fmtVal(row[21]) || '—',
           actualAudit: fmtVal(row[22]),
           delayAudit: fmtVal(row[23]) || '—',
-          remarks: currentRecord?.remarks || '',
+          remarks: fmtVal(row[24]) || currentRecord?.remarks || '', // Col Y: Remark
+          tallyRemark: fmtVal(row[24]) || currentRecord?.tallyRemark || '',
+
+          // Stage 5: Tally Entry (Col Z, AA, AB)
+          plannedTally: fmtVal(row[25]) || '—', // Col Z: Planned 5 (Protected Formula)
+          actualTally: fmtVal(row[26]),         // Col AA: Actual 5 (Timestamp)
+          delayTally: fmtVal(row[27]) || '—',   // Col AB: Delay 5 (Protected Formula)
           // A background sync must not look like a user mutation. Keep the
           // optimistic-lock version stable until actual sheet data changes.
           version: currentRecord?.version || 0,
@@ -879,6 +888,24 @@ export class SheetsService {
       record.actualAudit = timestampStr;
       if (stageData.remarks) {
         record.remarks = stageData.remarks;
+      }
+    } else if (stageName === 'TALLY') {
+      // Tally Entry: requires audit actual first. Writes AA (Actual 5) and Y (Remark)
+      // Planned 5 (Z) and Delay 5 (AB) are protected formulas
+      if (user.role !== 'tally' && user.role !== 'auditor' && !isSuper) {
+        throw new Error('Unauthorized: Only Tally In-Charge or Super Admin can complete tally entry.');
+      }
+      if (!record.actualAudit) {
+        throw new Error('Invalid stage transition: Audit must be completed before recording Tally Entry.');
+      }
+
+      writePayload.cells['AA'] = timestampStr; // Column AA: Actual 5
+      record.actualTally = timestampStr;
+      if (stageData.remarks !== undefined && stageData.remarks !== null) {
+        const remarkVal = stageData.remarks.toString().trim();
+        writePayload.cells['Y'] = remarkVal; // Column Y: Remark
+        record.remarks = remarkVal;
+        record.tallyRemark = remarkVal;
       }
     } else {
       throw new Error(`Unknown stage action: ${stageName}`);

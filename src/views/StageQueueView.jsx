@@ -57,6 +57,11 @@ export function StageQueueView({
       if (!r.actualPayment) return false;
       if (filterMode === 'PENDING') return !r.actualAudit;
       if (filterMode === 'COMPLETED') return !!r.actualAudit;
+    } else if (stageType === 'TALLY') {
+      // Tally requires audit completed
+      if (!r.actualAudit) return false;
+      if (filterMode === 'PENDING') return !r.actualTally;
+      if (filterMode === 'COMPLETED') return !!r.actualTally;
     }
 
     return true;
@@ -71,6 +76,7 @@ export function StageQueueView({
       case 'POSTING': return 'Confirm Posting';
       case 'PAYMENT': return 'Record Payment';
       case 'AUDIT': return 'Audit Payment';
+      case 'TALLY': return 'Tally Entry';
       default: return 'Details';
     }
   };
@@ -263,6 +269,7 @@ export function StageQueueView({
                   if (stageType === 'POSTING') isCurrentPending = r.actualApproval && r.paidField === 'Yes' && !r.actualPosting;
                   if (stageType === 'PAYMENT') isCurrentPending = r.actualPosting && !r.actualPayment;
                   if (stageType === 'AUDIT') isCurrentPending = r.actualPayment && !r.actualAudit;
+                  if (stageType === 'TALLY') isCurrentPending = r.actualAudit && !r.actualTally;
 
                   return (
                     <tr
@@ -325,6 +332,7 @@ export function StageQueueView({
                         {stageType === 'POSTING' && <StageBadge status={r.postingStatus} />}
                         {stageType === 'PAYMENT' && <StageBadge status={r.paymentStatus} />}
                         {stageType === 'AUDIT' && <StageBadge status={r.auditStatus} />}
+                        {stageType === 'TALLY' && <StageBadge status={r.tallyStatus} />}
                         {stageType === 'ALL' && <StageBadge status={r.overall} />}
                       </td>
                       {stageType !== 'ALL' && (
@@ -334,7 +342,8 @@ export function StageQueueView({
                               const permKey = stageType === 'APPROVAL' ? 'approval' :
                                               stageType === 'POSTING' ? 'posting' :
                                               stageType === 'PAYMENT' ? 'payment' :
-                                              stageType === 'AUDIT' ? 'audit' : null;
+                                              stageType === 'AUDIT' ? 'audit' :
+                                              stageType === 'TALLY' ? 'tally' : null;
                               const isSuper =
                                 user?.isSuperAdmin ||
                                 user?.role === 'admin' ||
