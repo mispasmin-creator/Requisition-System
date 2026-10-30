@@ -67,7 +67,9 @@ class ApiClient {
         await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
       } catch (err) {
         lastError = err;
-        if (attempt === 2) throw err;
+        if (attempt === 2) {
+          throw new Error('Backend API is not running. Start the application with "npm run dev" and retry.');
+        }
         await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
       }
     }

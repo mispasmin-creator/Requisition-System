@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently -k -p \"[{name}]\" -n \"SERVER,CLIENT\" -c \"cyan.bold,green.bold\" \"node --watch-path=server server/index.js\" \"vite\"",
-    "client": "vite",
+    "client": "npm run dev",
     "server": "node --watch-path=server server/index.js",
     "build": "vite build",
     "test": "node test/suite.cjs",
