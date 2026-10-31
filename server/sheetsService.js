@@ -903,9 +903,11 @@ export class SheetsService {
       record.actualTally = timestampStr;
       if (stageData.remarks !== undefined && stageData.remarks !== null) {
         const remarkVal = stageData.remarks.toString().trim();
-        writePayload.cells['Y'] = remarkVal; // Column Y: Remark
-        record.remarks = remarkVal;
-        record.tallyRemark = remarkVal;
+        if (remarkVal) {
+          writePayload.cells['Y'] = remarkVal; // Column Y: Remark
+          record.remarks = remarkVal;
+          record.tallyRemark = remarkVal;
+        }
       }
     } else {
       throw new Error(`Unknown stage action: ${stageName}`);

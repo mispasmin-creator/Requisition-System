@@ -62,7 +62,7 @@ export function StageActionModal({ isOpen, onClose, requisition, stageType, onSu
         paymentDecision: requisition.paymentDecision || 'Yes',
         voucherRef: '',
         paymentProof: requisition.paymentProof || '',
-        remarks: requisition.remarks || '',
+        remarks: '',
       });
     }
   }, [isOpen, requisition]);
@@ -410,6 +410,37 @@ export function StageActionModal({ isOpen, onClose, requisition, stageType, onSu
               >
                 <Paperclip size={12} />
                 <span>Open File in Drive ↗</span>
+              </a>
+            </div>
+          )}
+          {['AUDIT', 'TALLY'].includes(stageType) && requisition.remarks && (
+            <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'baseline', gap: '6px', paddingTop: '4px', borderTop: '1px dashed var(--border-light)' }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Payment Remark:</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.84rem' }}>{requisition.remarks}</span>
+            </div>
+          )}
+          {['AUDIT', 'TALLY'].includes(stageType) && (requisition.paymentProof || requisition.paymentAttachment) && (
+            <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Payment Receipt:</span>
+              <a
+                href={requisition.paymentProof || requisition.paymentAttachment}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '3px 9px',
+                  borderRadius: '6px',
+                  backgroundColor: '#dcfce7',
+                  color: '#15803d',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                <Paperclip size={12} />
+                <span>View Payment Receipt ↗</span>
               </a>
             </div>
           )}
