@@ -201,6 +201,12 @@ export function StageActionModal({ isOpen, onClose, requisition, stageType, onSu
               <span style={{ color: 'var(--text-muted)' }}>Reason / Purpose:</span>{' '}
               <span>{requisition.reason || '—'}</span>
             </div>
+            {requisition.chequeDetails && (
+              <div style={{ gridColumn: 'span 2' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Cheque Details:</span>{' '}
+                <strong>{requisition.chequeDetails}</strong>
+              </div>
+            )}
             {(requisition.attachments || requisition.attachmentUrl) && (
               <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '4px' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Attachment:</span>
@@ -223,6 +229,31 @@ export function StageActionModal({ isOpen, onClose, requisition, stageType, onSu
                 >
                   <Paperclip size={12} />
                   <span>Open File in Drive ↗</span>
+                </a>
+              </div>
+            )}
+            {requisition.chequeImage && requisition.chequeImage !== requisition.attachments && (
+              <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Cheque Image:</span>
+                <a
+                  href={requisition.chequeImage}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    backgroundColor: '#fef3c7',
+                    color: '#92400e',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                  }}
+                >
+                  <Paperclip size={12} />
+                  <span>Open Cheque Image ↗</span>
                 </a>
               </div>
             )}

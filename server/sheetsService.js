@@ -214,6 +214,10 @@ export class SheetsService {
         if (row[3] && row[3].v) modes.add(row[3].v.toString().trim());
       }
 
+      if (!modes.has('Credit Card')) {
+        modes.add('Credit Card');
+      }
+
       this.masterDropdowns = {
         requesters: Array.from(requesters).filter(Boolean),
         firmNames: Array.from(firmNames).filter(Boolean),
@@ -516,6 +520,18 @@ export class SheetsService {
           return str;
         };
 
+        const rawReason = fmtVal(row[7]);
+        const chequeMarker = ' | Cheque Details: ';
+        const chequeIdx = rawReason.indexOf(chequeMarker);
+        const parsedReason = chequeIdx === -1 ? rawReason : rawReason.slice(0, chequeIdx).trim();
+        const parsedChequeDetails = chequeIdx === -1 ? '' : rawReason.slice(chequeIdx + chequeMarker.length).trim();
+
+        const rawAttachments = fmtVal(row[8]);
+        const chequeImgMarker = ' | Cheque: ';
+        const chequeImgIdx = rawAttachments.indexOf(chequeImgMarker);
+        const parsedAttachments = chequeImgIdx === -1 ? rawAttachments : rawAttachments.slice(0, chequeImgIdx).trim();
+        const parsedChequeImage = chequeImgIdx === -1 ? '' : rawAttachments.slice(chequeImgIdx + chequeImgMarker.length).trim();
+
         const record = {
           rsIndentNo,
           sheetRowNumber,
@@ -525,8 +541,10 @@ export class SheetsService {
           amount: parseFloat(row[4]?.v || 0) || 0, // Col E: Amount
           mode: fmtVal(row[5]),            // Col F: Mode
           paymentLocation: fmtVal(row[6]), // Col G: Payment Location
-          reason: fmtVal(row[7]),          // Col H: Reason
-          attachments: fmtVal(row[8]),     // Col I: Any Attachments
+          reason: parsedReason,            // Col H: Reason
+          chequeDetails: parsedChequeDetails || currentRecord?.chequeDetails || '',
+          attachments: parsedAttachments,  // Col I: Any Attachments
+          chequeImage: parsedChequeImage || currentRecord?.chequeImage || '',
 
           // Stage 1: Management Approval
           plannedApproval: fmtVal(row[9]) || '—',   // Col J: Planned (Protected Formula)
@@ -698,6 +716,17 @@ export class SheetsService {
     // Google Sheets friendly timestamp: MM/DD/YYYY HH:MM:SS (strictly no comma)
     const timestampStr = formatGoogleSheetsTimestamp(new Date());
 
+    const rawReason = (formData.reason || '').trim();
+    const chequeDetails = (formData.chequeDetails || '').trim();
+    const sheetReason = chequeDetails ? `${rawReason} | Cheque Details: ${chequeDetails}` : rawReason;
+
+    const billAttachment = (formData.attachments || '').trim();
+    const chequeImage = (formData.chequeImage || '').trim();
+    const sheetAttachments = chequeImage
+      ? (billAttachment ? `${billAttachment} | Cheque: ${chequeImage}` : chequeImage)
+      : billAttachment;
+    const primaryAttachment = billAttachment || chequeImage;
+
     // Explicit non-formula write payload (Cols A-I)
     const writePayload = {
       row: allocatedRow,
@@ -709,8 +738,8 @@ export class SheetsService {
         E: parseFloat(formData.amount) || 0, // Column E: Amount
         F: formData.mode || '', // Column F: Mode
         G: formData.paymentLocation || '', // Column G: Payment Location
-        H: formData.reason || '', // Column H: Reason
-        I: formData.attachments || '', // Column I: Any Attachments
+        H: sheetReason, // Column H: Reason (+ Cheque Details if provided)
+        I: sheetAttachments, // Column I: Any Attachments (+ Cheque Image if provided)
       },
     };
 
@@ -730,8 +759,10 @@ export class SheetsService {
       amount: parseFloat(formData.amount) || 0,
       mode: formData.mode || '',
       paymentLocation: formData.paymentLocation || '',
-      reason: formData.reason || '',
-      attachments: formData.attachments || '',
+      reason: rawReason,
+      chequeDetails,
+      attachments: primaryAttachment,
+      chequeImage,
       plannedApproval: '—',
       actualApproval: '',
       delayApproval: '—',

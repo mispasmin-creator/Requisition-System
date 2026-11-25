@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Modal } from '../components/Modal';
 import { SearchableSelect } from '../components/SearchableSelect';
 import { DriveFileUpload } from '../components/DriveFileUpload';
 import { api } from '../api/client';
-import { PlusCircle, Paperclip, AlertCircle } from 'lucide-react';
+import { PlusCircle, Paperclip, AlertCircle, CreditCard } from 'lucide-react';
 
 export function NewRequisitionModal({ isOpen, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -15,6 +15,8 @@ export function NewRequisitionModal({ isOpen, onClose, onSuccess }) {
     paymentLocation: '',
     reason: '',
     attachments: '',
+    chequeDetails: '',
+    chequeImage: '',
   });
 
   const [dropdowns, setDropdowns] = useState({
@@ -54,12 +56,26 @@ export function NewRequisitionModal({ isOpen, onClose, onSuccess }) {
     }
   }, [isOpen]);
 
+  const modeOptions = useMemo(() => {
+    const base = Array.isArray(dropdowns.modes) ? [...dropdowns.modes] : [];
+    if (!base.some((m) => (m || '').trim().toLowerCase() === 'credit card')) {
+      base.push('Credit Card');
+    }
+    return base;
+  }, [dropdowns.modes]);
+
+  const isChequeMode = (formData.mode || '').trim().toLowerCase() === 'cheque';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
     if (!formData.amount || parseFloat(formData.amount) <= 0) {
       setError('Please enter a valid amount greater than 0.');
+      return;
+    }
+    if (isChequeMode && !formData.chequeDetails.trim()) {
+      setError('Please enter Cheque Details (cheque number, bank name, date, etc.).');
       return;
     }
     if (!formData.reason.trim()) {
@@ -69,7 +85,12 @@ export function NewRequisitionModal({ isOpen, onClose, onSuccess }) {
 
     setLoading(true);
     try {
-      const created = await api.submitRequisition(formData, idempotencyKey);
+      const payload = {
+        ...formData,
+        chequeDetails: isChequeMode ? formData.chequeDetails.trim() : '',
+        chequeImage: isChequeMode ? formData.chequeImage : '',
+      };
+      const created = await api.submitRequisition(payload, idempotencyKey);
       onSuccess(created);
       onClose();
       // Reset form
@@ -81,6 +102,8 @@ export function NewRequisitionModal({ isOpen, onClose, onSuccess }) {
         paymentLocation: '',
         reason: '',
         attachments: '',
+        chequeDetails: '',
+        chequeImage: '',
       });
       setIsCustomRequester(false);
     } catch (err) {
@@ -219,12 +242,69 @@ export function NewRequisitionModal({ isOpen, onClose, onSuccess }) {
           <SearchableSelect
             label="Payment Mode    "
             required
-            options={dropdowns.modes}
+            options={modeOptions}
             value={formData.mode}
-            onChange={(val) => setFormData({ ...formData, mode: val })}
+            onChange={(val) =>
+              setFormData((prev) => ({
+                ...prev,
+                mode: val,
+                ...(val?.trim().toLowerCase() !== 'cheque' ? { chequeDetails: '', chequeImage: '' } : {}),
+              }))
+            }
             placeholder="Select Mode..."
           />
         </div>
+
+        {/* Cheque Details & Cheque Image (shown when Payment Mode is Cheque) */}
+        {isChequeMode && (
+          <div
+            style={{
+              padding: '14px',
+              borderRadius: '14px',
+              backgroundColor: 'var(--surface-subtle)',
+              border: '1px solid var(--border-strong)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '0.86rem', fontWeight: 700, color: 'var(--accent-sage-dark)' }}>
+              <CreditCard size={16} />
+              <span>Cheque Payment Information</span>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                Cheque Details <span style={{ color: '#c0392b' }}>*</span>
+              </label>
+              <textarea
+                required
+                rows={2}
+                value={formData.chequeDetails}
+                onChange={(e) => setFormData({ ...formData, chequeDetails: e.target.value })}
+                placeholder="Enter Cheque No., Bank Name, Cheque Date, Payee Name..."
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-light)',
+                  backgroundColor: '#ffffff',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  resize: 'vertical',
+                }}
+              />
+            </div>
+
+            <DriveFileUpload
+              value={formData.chequeImage}
+              onChange={(val) => setFormData({ ...formData, chequeImage: val })}
+              label="Cheque Image"
+              accept="image/*,application/pdf"
+              uploadPrompt="Click to upload cheque image"
+            />
+          </div>
+        )}
 
         {/* Payment Location */}
         <SearchableSelect

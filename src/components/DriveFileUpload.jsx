@@ -26,6 +26,8 @@ export function DriveFileUpload({
   label = 'Attachment (Bill / Quotation / Receipt)',
   hint = '',
   disabled = false,
+  accept = 'image/*,application/pdf',
+  uploadPrompt = 'Click to upload image or PDF',
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -226,7 +228,7 @@ export function DriveFileUpload({
         type="file"
         ref={fileInputRef}
         onChange={handleInputChange}
-        accept="image/*,application/pdf"
+        accept={accept}
         style={{ display: 'none' }}
         disabled={disabled || uploading}
       />
@@ -467,7 +469,7 @@ export function DriveFileUpload({
 
               <div>
                 <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  Click to upload image or PDF
+                  {uploadPrompt}
                 </span>{' '}
               </div>
 

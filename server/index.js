@@ -271,7 +271,7 @@ app.post('/api/requisitions', authMiddleware, async (req, res) => {
       return res.json(submissionIdempotencyCache.get(idempotencyKey));
     }
 
-    const { requesterName, firmName, amount, mode, paymentLocation, reason, attachments } = req.body;
+    const { requesterName, firmName, amount, mode, paymentLocation, reason, attachments, chequeDetails, chequeImage } = req.body;
 
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
       return res.status(400).json({ error: 'Valid amount greater than 0 is required.' });
@@ -295,6 +295,8 @@ app.post('/api/requisitions', authMiddleware, async (req, res) => {
         paymentLocation,
         reason,
         attachments,
+        chequeDetails,
+        chequeImage,
       },
       req.user
     );

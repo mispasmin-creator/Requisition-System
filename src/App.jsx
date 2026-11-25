@@ -4,9 +4,9 @@ import { api } from './api/client';
 import { Shell } from './components/Shell';
 import { LoginView } from './views/LoginView';
 import { DashboardView } from './views/DashboardView';
+import { RequisitionsView } from './views/RequisitionsView';
 import { StageQueueView } from './views/StageQueueView';
 import { AdminConfigView } from './views/AdminConfigView';
-import { NewRequisitionModal } from './views/NewRequisitionModal';
 import { StageActionModal, getPaymentFormUrl } from './views/StageActionModal';
 import { exportRequisitionsCsv } from './utils/csvExport';
 
@@ -27,7 +27,6 @@ function MainApp() {
   const [activeFilter, setActiveFilter] = useState(null); // { stage: 'approval', status: 'PENDING' }
 
   // Modal states
-  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [stageActionState, setStageActionState] = useState({
     isOpen: false,
     requisition: null,
@@ -96,8 +95,7 @@ function MainApp() {
         setCurrentTab(tab);
         setActiveFilter(null);
       }}
-      onOpenNewRequisition={() => setIsNewModalOpen(true)}
-      onExportCsv={currentTab === 'admin' ? undefined : () => exportRequisitionsCsv(
+      onExportCsv={currentTab === 'admin' || currentTab === 'requisitions' ? undefined : () => exportRequisitionsCsv(
         requisitions,
         `Requisitions_${currentTab}`,
         '',
@@ -116,10 +114,19 @@ function MainApp() {
           activeFilter={activeFilter}
           onSelectFilter={(filter) => setActiveFilter(filter)}
           onOpenStageAction={handleOpenStageAction}
-          onOpenNewRequisition={() => setIsNewModalOpen(true)}
           onOpenSettings={() => setCurrentTab('admin')}
           onSelectTab={(tab) => setCurrentTab(tab)}
           user={user}
+        />
+      )}
+
+      {currentTab === 'requisitions' && (
+        <RequisitionsView
+          requisitions={requisitions}
+          onOpenStageAction={handleOpenStageAction}
+          onRequisitionCreated={() => {
+            qc.invalidateQueries({ queryKey: ['requisitions'] });
+          }}
         />
       )}
 
@@ -190,15 +197,6 @@ function MainApp() {
       )}
 
       {currentTab === 'admin' && <AdminConfigView user={user} />}
-
-      {/* New Requisition Modal */}
-      <NewRequisitionModal
-        isOpen={isNewModalOpen}
-        onClose={() => setIsNewModalOpen(false)}
-        onSuccess={() => {
-          qc.invalidateQueries({ queryKey: ['requisitions'] });
-        }}
-      />
 
       {/* Stage Action Modal */}
       <StageActionModal

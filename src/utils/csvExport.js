@@ -134,6 +134,134 @@ const getStageStatus = (record, stageType) => {
   return record.actualTally ? 'Completed' : 'In Progress';
 };
 
+export function getRequisitionReachedStage(r) {
+  if (!r) {
+    return { step: 1, stageKey: 'APPROVAL', status: 'PENDING', label: '1/5 • Management Approval', shortLabel: 'Pending Approval', detail: '' };
+  }
+  if (r.paidField === 'Rejected') {
+    return {
+      step: 1,
+      stageKey: 'REJECTED',
+      status: 'REJECTED',
+      label: 'Rejected (at Approval)',
+      shortLabel: 'Rejected',
+      detail: r.actualApproval ? `Rejected on ${r.actualApproval}` : 'Rejected at Management Approval',
+    };
+  }
+  if (r.paidField === 'Hold') {
+    return {
+      step: 1,
+      stageKey: 'HOLD',
+      status: 'HOLD',
+      label: 'On Hold (1/5 • Approval)',
+      shortLabel: 'On Hold',
+      detail: 'Held at Management Approval',
+    };
+  }
+  if (!r.actualApproval) {
+    return {
+      step: 1,
+      stageKey: 'APPROVAL',
+      status: r.approvalStatus === 'OVERDUE' ? 'OVERDUE' : 'PENDING',
+      label: '1/5 • Management Approval',
+      shortLabel: 'Pending Approval',
+      detail: r.plannedApproval && r.plannedApproval !== '—' ? `Planned: ${r.plannedApproval}` : 'Waiting for Management Approval',
+    };
+  }
+  if (!r.actualPosting) {
+    return {
+      step: 2,
+      stageKey: 'POSTING',
+      status: r.postingStatus === 'OVERDUE' ? 'OVERDUE' : 'PENDING',
+      label: '2/5 • Posting',
+      shortLabel: 'Pending Posting',
+      detail: `Approved: ${r.actualApproval}`,
+    };
+  }
+  if (!r.actualPayment) {
+    return {
+      step: 3,
+      stageKey: 'PAYMENT',
+      status: r.paymentStatus === 'OVERDUE' ? 'OVERDUE' : 'PENDING',
+      label: '3/5 • Get Payment',
+      shortLabel: 'Pending Payment',
+      detail: `Posted: ${r.actualPosting}`,
+    };
+  }
+  if (!r.actualAudit) {
+    return {
+      step: 4,
+      stageKey: 'AUDIT',
+      status: r.auditStatus === 'OVERDUE' ? 'OVERDUE' : 'PENDING',
+      label: '4/5 • Audit Payments',
+      shortLabel: 'Pending Audit',
+      detail: `Paid: ${r.actualPayment}`,
+    };
+  }
+  if (!r.actualTally) {
+    return {
+      step: 5,
+      stageKey: 'TALLY',
+      status: r.tallyStatus === 'OVERDUE' ? 'OVERDUE' : 'PENDING',
+      label: '5/5 • Tally Entry',
+      shortLabel: 'Pending Tally',
+      detail: `Audited: ${r.actualAudit}`,
+    };
+  }
+  return {
+    step: 6,
+    stageKey: 'COMPLETED',
+    status: 'COMPLETED',
+    label: 'Completed (All 5 Stages)',
+    shortLabel: 'Completed',
+    detail: `Tally Done: ${r.actualTally}`,
+  };
+}
+
+const REQUISITIONS_VIEW_CSV_COLUMNS = [
+  { key: 'rsIndentNo', label: 'RS-Indent No.' },
+  { key: 'timestamp', label: 'Date' },
+  { key: 'requesterName', label: 'Requester' },
+  { key: 'firmName', label: 'Firm Name' },
+  {
+    key: 'amount',
+    label: 'Requested Amount (₹)',
+    getter: (r) => (r.amount !== undefined && r.amount !== null ? r.amount : ''),
+  },
+  {
+    key: 'approvedAmount',
+    label: 'Approved Amount (₹)',
+    getter: (r) => (r.approvedAmount ? r.approvedAmount : ''),
+  },
+  { key: 'paidField', label: 'Approval Decision' },
+  { key: 'mode', label: 'Mode' },
+  { key: 'paymentLocation', label: 'Payment Location' },
+  { key: 'reason', label: 'Reason' },
+  { key: 'chequeDetails', label: 'Cheque Details' },
+  { key: 'attachments', label: 'Attachment' },
+  { key: 'chequeImage', label: 'Cheque Image' },
+  {
+    key: 'currentStageReached',
+    label: 'Current Stage (Reached At)',
+    getter: (r) => getRequisitionReachedStage(r).label,
+  },
+  { key: 'actualApproval', label: 'Approval Date' },
+  { key: 'actualPosting', label: 'Posting Date' },
+  { key: 'actualPayment', label: 'Payment Date' },
+  {
+    key: 'paymentAttachment',
+    label: 'Payment Proof',
+    getter: (r) => r.paymentAttachment || r.paymentProof || '',
+  },
+  { key: 'actualAudit', label: 'Audit Date' },
+  { key: 'actualTally', label: 'Tally Date' },
+  {
+    key: 'remarks',
+    label: 'Remarks',
+    getter: (r) => r.remarks || r.tallyRemark || '',
+  },
+];
+
 const STAGE_SCREEN_CSV_COLUMNS = [
   { key: 'rsIndentNo', label: 'RS-Indent No.' },
   { key: 'timestamp', label: 'Date' },
@@ -148,6 +276,7 @@ const STAGE_SCREEN_CSV_COLUMNS = [
 export function getRequisitionCsvColumns(options = {}) {
   const { view = 'stage', stageType = 'ALL', filterMode = 'ALL' } = options;
   if (view === 'dashboard') return DASHBOARD_CSV_COLUMNS;
+  if (view === 'requisitions') return REQUISITIONS_VIEW_CSV_COLUMNS;
 
   const columns = [...STAGE_SCREEN_CSV_COLUMNS];
   if (stageType === 'APPROVAL' && filterMode === 'COMPLETED') {

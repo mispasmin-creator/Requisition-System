@@ -13,7 +13,6 @@ export function DashboardView({
   activeFilter,
   onSelectFilter,
   onOpenStageAction,
-  onOpenNewRequisition,
   onOpenSettings,
   onSelectTab,
   user,

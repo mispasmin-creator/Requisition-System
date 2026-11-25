@@ -10,8 +10,6 @@ import {
   BookCheck,
   Archive,
   Settings,
-  PlusCircle,
-  Plus,
   LogOut,
   User,
   Shield,
@@ -31,7 +29,6 @@ export function Shell({
   onLogout,
   currentTab,
   onSelectTab,
-  onOpenNewRequisition,
   onExportCsv,
   counters,
   onSyncTriggered,
@@ -88,6 +85,7 @@ export function Shell({
   // Navigation Items with role-based visibility
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['*'] },
+    { id: 'requisitions', label: 'Requisitions', icon: FileText, roles: ['*'] },
     {
       id: 'approval',
       label: 'Management Approval',
@@ -732,7 +730,7 @@ export function Shell({
                 </h1>
               </div>
 
-              {/* Top Action Center: Export CSV + New Requisition Button */}
+              {/* Top Action Center: Sync & Export CSV */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <LiveSyncIndicator onSyncTriggered={onSyncTriggered} />
 
@@ -769,33 +767,6 @@ export function Shell({
                     <span>Export CSV</span>
                   </button>
                 )}
-
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="button"
-                  onClick={onOpenNewRequisition}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '9px 18px',
-                    borderRadius: 'var(--radius-pill)',
-                    backgroundColor: 'var(--accent-sage)',
-                    color: '#ffffff',
-                    border: 'none',
-                    fontWeight: 700,
-                    fontSize: '0.88rem',
-                    cursor: 'pointer',
-                    boxShadow: '0 3px 12px rgba(136, 163, 131, 0.35)',
-                    transition: 'background-color 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--accent-sage-hover)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--accent-sage)')}
-                >
-                  <PlusCircle size={17} strokeWidth={2.4} />
-                  <span>New Requisition</span>
-                </motion.button>
               </div>
             </header>
           ) : (
@@ -904,7 +875,6 @@ export function Shell({
                   style={{
                     padding: '6px 14px',
                     borderRadius: '9999px',
-                    border: 'none',
                     backgroundColor: currentTab === 'dashboard' ? '#1f3422' : '#ffffff',
                     color: currentTab === 'dashboard' ? '#ffffff' : '#334836',
                     fontSize: '0.78rem',
@@ -916,6 +886,25 @@ export function Shell({
                   }}
                 >
                   Dashboard
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onSelectTab('requisitions')}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '9999px',
+                    backgroundColor: currentTab === 'requisitions' ? '#1f3422' : '#ffffff',
+                    color: currentTab === 'requisitions' ? '#ffffff' : '#334836',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    boxShadow: currentTab === 'requisitions' ? '0 2px 8px rgba(31, 52, 34, 0.25)' : 'none',
+                    border: currentTab === 'requisitions' ? 'none' : '1px solid #dce7d9',
+                  }}
+                >
+                  Requisitions
                 </button>
 
                 {stageTabs.map((st) => {
@@ -1094,27 +1083,24 @@ export function Shell({
               )}
             </button>
 
-            {/* 3. Center Elevated + New Requisition Button */}
+            {/* 3. Requisitions */}
             <button
               type="button"
-              onClick={onOpenNewRequisition}
-              aria-label="New Requisition"
+              onClick={() => onSelectTab('requisitions')}
               style={{
-                width: '46px',
-                height: '46px',
-                borderRadius: '50%',
-                backgroundColor: '#88a383',
-                color: '#ffffff',
-                border: 'none',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 16px rgba(136, 163, 131, 0.55)',
-                marginTop: '-14px',
+                gap: '2px',
+                background: 'none',
+                border: 'none',
+                color: currentTab === 'requisitions' ? '#dce7d9' : 'rgba(220, 231, 217, 0.5)',
                 cursor: 'pointer',
+                padding: '4px 8px',
               }}
             >
-              <Plus size={24} strokeWidth={2.8} />
+              <FileText size={20} strokeWidth={currentTab === 'requisitions' ? 2.5 : 1.8} />
+              <span style={{ fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.02em' }}>Requisitions</span>
             </button>
 
             {/* 4. All Records */}
@@ -1335,31 +1321,6 @@ export function Shell({
                     gap: '10px',
                   }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onOpenNewRequisition();
-                      setIsMobileDrawerOpen(false);
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      padding: '11px',
-                      borderRadius: '9999px',
-                      backgroundColor: '#1f3422',
-                      color: '#ffffff',
-                      border: 'none',
-                      fontSize: '0.86rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <Plus size={16} strokeWidth={2.4} />
-                    <span>Create New Requisition</span>
-                  </button>
-
                   <button
                     type="button"
                     onClick={() => {

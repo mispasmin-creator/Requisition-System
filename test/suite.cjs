@@ -50,7 +50,7 @@ async function runTestSuite() {
   const { authenticate, filterRequisitionsForUser } = await import('../server/auth.js');
   const { SchemaValidator } = await import('../server/schemaValidator.js');
   const { SheetsService, sheetsService } = await import('../server/sheetsService.js');
-  const { getRequisitionCsvColumns } = await import('../src/utils/csvExport.js');
+  const { getRequisitionCsvColumns, getRequisitionReachedStage } = await import('../src/utils/csvExport.js');
 
   // -------------------------------------------------------------------------
   // 1. FORMULA PRESERVATION & SAFETY TESTS
@@ -85,6 +85,21 @@ async function runTestSuite() {
       getRequisitionCsvColumns({ view: 'stage', stageType: 'APPROVAL', filterMode: 'COMPLETED' }).map((column) => column.label),
       ['RS-Indent No.', 'Date', 'Requester', 'Firm', 'Amount (₹)', 'Approved Amt (₹)', 'Mode', 'Reason', 'Attachment', 'Stage Status']
     );
+    const reqCols = getRequisitionCsvColumns({ view: 'requisitions' }).map((column) => column.label);
+    assert.ok(reqCols.includes('Current Stage (Reached At)'));
+    assert.ok(reqCols.includes('Firm Name'));
+    assert.ok(reqCols.includes('Requester'));
+  });
+
+  test('getRequisitionReachedStage accurately identifies current workflow step', () => {
+    assert.strictEqual(getRequisitionReachedStage({ paidField: 'Rejected' }).stageKey, 'REJECTED');
+    assert.strictEqual(getRequisitionReachedStage({ paidField: 'Hold' }).stageKey, 'HOLD');
+    assert.strictEqual(getRequisitionReachedStage({}).stageKey, 'APPROVAL');
+    assert.strictEqual(getRequisitionReachedStage({ actualApproval: '01/01/2026' }).stageKey, 'POSTING');
+    assert.strictEqual(getRequisitionReachedStage({ actualApproval: '01/01/2026', actualPosting: '01/02/2026' }).stageKey, 'PAYMENT');
+    assert.strictEqual(getRequisitionReachedStage({ actualApproval: '01/01/2026', actualPosting: '01/02/2026', actualPayment: '01/03/2026' }).stageKey, 'AUDIT');
+    assert.strictEqual(getRequisitionReachedStage({ actualApproval: '01/01/2026', actualPosting: '01/02/2026', actualPayment: '01/03/2026', actualAudit: '01/04/2026' }).stageKey, 'TALLY');
+    assert.strictEqual(getRequisitionReachedStage({ actualApproval: '01/01/2026', actualPosting: '01/02/2026', actualPayment: '01/03/2026', actualAudit: '01/04/2026', actualTally: '01/05/2026' }).stageKey, 'COMPLETED');
   });
 
   await asyncTest('Simulated isolated sheet with 1000+ formula rows correctly allocates row after data', async () => {
@@ -136,6 +151,30 @@ async function runTestSuite() {
     );
 
     assert.strictEqual(created.requesterName, 'Vivek Mishra');
+  });
+
+  await asyncTest('Cheque submission stores cheque details and cheque image cleanly alongside bill attachments', async () => {
+    const service = new SheetsService();
+    const created = await service.submitNewRequisition(
+      {
+        requesterName: 'Vivek Mishra',
+        firmName: 'Pmmpl',
+        amount: 5500,
+        mode: 'Cheque',
+        paymentLocation: 'Party Account',
+        reason: 'Vendor advance',
+        attachments: 'https://drive.google.com/file/d/bill123/view',
+        chequeDetails: 'Chq #445511, HDFC Bank, 25-11-2026',
+        chequeImage: 'https://drive.google.com/file/d/cheque999/view',
+      },
+      { role: 'requester', requesterName: 'Vivek Mishra' }
+    );
+
+    assert.strictEqual(created.mode, 'Cheque');
+    assert.strictEqual(created.reason, 'Vendor advance');
+    assert.strictEqual(created.chequeDetails, 'Chq #445511, HDFC Bank, 25-11-2026');
+    assert.strictEqual(created.attachments, 'https://drive.google.com/file/d/bill123/view');
+    assert.strictEqual(created.chequeImage, 'https://drive.google.com/file/d/cheque999/view');
   });
 
   // -------------------------------------------------------------------------
